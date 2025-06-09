@@ -3,7 +3,7 @@
 A full-stack e-commerce application built with **Node.js**, **Express**, **MongoDB**, and **React**.  
 This monorepo includes both a backend API and a frontend client.
 
-![Screenshot](./screenshot.png)
+![Homepage Screenshot](./screenshot.png)
 
 ---
 
