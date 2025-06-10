@@ -19,7 +19,7 @@ const ProductList = () => {
   useEffect(() => {
     const fetchProducts = async () => {
         try {
-        const res = await axios.get("http://localhost:4000/api/products", {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/products`, {
             headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
             },

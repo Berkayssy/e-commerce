@@ -8,7 +8,7 @@ export default function MyOrderList() {
     useEffect(() => {
     const fetchMyOrders = async () => {
       try {
-        const res = await axios.get("http://localhost:4000/api/orders/my", {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/orders/my`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },

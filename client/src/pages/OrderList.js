@@ -9,7 +9,7 @@ const OrderList = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await axios.get("http://localhost:4000/api/orders", {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/orders`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },

@@ -29,7 +29,7 @@ const Register = () => {
         if (form.password.length < 6) {setError("Password must be at least 6 characters.");return;}
         
         try {
-            await api.post("http://localhost:4000/api/auth/register", form);
+            await api.post(`${process.env.REACT_APP_API_URL}/auth/register`, form);
             alert("User registered successfully", "You can now log in.");
             setForm({ username: "", email: "", password: "" });
             navigate("/login");
