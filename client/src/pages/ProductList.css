@@ -1,0 +1,550 @@
+.product-list-page {
+  max-width: 1400px;
+  margin: 100px auto 2rem; /* Navbar yüksekliğini hesaba kat */
+  padding: 0 2rem;
+  width: 100%;
+}
+
+.product-list-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #1a202c;
+  margin-bottom: 2rem;
+  text-align: center;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 1rem 0;
+}
+
+.product-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 40px rgba(99, 102, 241, 0.2);
+}
+
+.product-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  cursor: zoom-in;
+}
+
+.product-image:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  cursor: zoom-in;
+}
+
+.product-image:hover::after {
+  content: "Click to view";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  pointer-events: none;
+  opacity: 0;
+  animation: fadeIn 0.3s ease forwards;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.product-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
+}
+
+.product-description {
+  color: #4b5563;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-price {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #6366f1;
+  margin-bottom: 1rem;
+}
+
+.product-stock,
+.product-category {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.product-edit-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.product-edit-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.8);
+  color: #1a202c;
+}
+
+.product-edit-save-btn,
+.product-edit-cancel-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.product-edit-save-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+}
+
+.product-edit-save-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+}
+
+.product-edit-cancel-btn {
+  background: rgba(107, 114, 128, 0.1);
+  color: #4b5563;
+  border: 1px solid rgba(107, 114, 128, 0.2);
+  box-shadow: 0 4px 15px rgba(107, 114, 128, 0.1);
+}
+
+.product-edit-cancel-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(107, 114, 128, 0.2);
+  box-shadow: 0 8px 25px rgba(107, 114, 128, 0.2);
+}
+
+.product-admin-actions,
+.product-user-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.product-action-edit-btn,
+.product-action-delete-btn,
+.add-to-basket-btn {
+  flex: 1;
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.product-action-edit-btn {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.product-action-edit-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(99, 102, 241, 0.2);
+}
+
+.product-action-delete-btn {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.product-action-delete-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.add-to-basket-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+}
+
+.add-to-basket-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+}
+
+.add-to-basket-btn.in-basket {
+  background: linear-gradient(135deg, #be185d 0%, #dc2626 100%); /* Sepetteyse farklı renk */
+}
+
+.add-to-basket-btn.in-basket:hover {
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3); /* Sepetteyse hover gölge */
+}
+
+.product-details-link {
+  display: block;
+  text-align: center;
+  margin-top: 1rem;
+  color: #ec4899;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.product-details-link:hover {
+  color: #be185d;
+}
+
+.product-loading-container,
+.product-error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh; /* Yeterli yükseklik */
+  gap: 1rem;
+  color: #a0aec0;
+  font-size: 1.1rem;
+}
+
+.product-loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #6366f1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.product-error-message {
+  color: #ef4444;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 1rem 2rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .product-list-title {
+    color: #e2e8f0;
+  }
+
+  .product-card {
+    background: rgba(30, 41, 59, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .product-name {
+    color: #e2e8f0;
+  }
+
+  .product-description,
+  .product-stock,
+  .product-category {
+    color: #94a3b8;
+  }
+
+  .product-price {
+    color: #99aaff; /* Dark mode için farklı renk tonu */
+  }
+
+  .product-edit-input {
+    background: rgba(55, 62, 80, 0.7);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+  }
+
+  .product-edit-input::placeholder {
+    color: #a0aec0;
+  }
+
+  .product-edit-save-btn {
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  }
+
+  .product-edit-save-btn:hover {
+    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+  }
+
+  .product-edit-cancel-btn {
+    background: rgba(107, 114, 128, 0.2);
+    color: #cbd5e0;
+    border-color: rgba(107, 114, 128, 0.3);
+    box-shadow: 0 4px 15px rgba(107, 114, 128, 0.2);
+  }
+
+  .product-edit-cancel-btn:hover {
+    background: rgba(107, 114, 128, 0.3);
+    box-shadow: 0 8px 25px rgba(107, 114, 128, 0.3);
+  }
+
+  .product-action-edit-btn {
+    background: rgba(99, 102, 241, 0.15);
+    color: #8b5cf6;
+    border-color: rgba(99, 102, 241, 0.25);
+  }
+
+  .product-action-edit-btn:hover {
+    background: rgba(99, 102, 241, 0.25);
+  }
+
+  .product-action-delete-btn {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.25);
+  }
+
+  .product-action-delete-btn:hover {
+    background: rgba(239, 68, 68, 0.25);
+  }
+
+  .add-to-basket-btn {
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  }
+
+  .add-to-basket-btn:hover {
+    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+  }
+
+  .add-to-basket-btn.in-basket {
+    background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+  }
+
+  .add-to-basket-btn.in-basket:hover {
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+  }
+
+  .product-details-link {
+    color: #f87171;
+  }
+
+  .product-details-link:hover {
+    color: #ef4444;
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .product-list-page {
+    padding: 0 1rem;
+    margin-top: 80px;
+  }
+
+  .product-list-title {
+    font-size: 2rem;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .product-card {
+    padding: 1.2rem;
+  }
+
+  .product-image {
+    height: 180px;
+  }
+
+  .product-name {
+    font-size: 1.1rem;
+  }
+
+  .product-description {
+    font-size: 0.9rem;
+  }
+
+  .product-price {
+    font-size: 1.3rem;
+  }
+
+  .product-admin-actions,
+  .product-user-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+.product-image-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.product-image-modal {
+  position: relative;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modal-image {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #333;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.modal-close-btn:hover {
+  color: #ef4444;
+}
+
+.modal-slider-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.4); /* Koyu şeffaf */
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.modal-slider-arrow:hover {
+  background: rgba(0, 0, 0, 0.6); /* Hover'da daha koyu */
+}
+
+.modal-left-arrow {
+  left: 10px;
+}
+
+.modal-right-arrow {
+  right: 10px;
+}
+
+/* Responsive for modal */
+@media (max-width: 768px) {
+  .modal-slider-arrow {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+  }
+  .modal-close-btn {
+    font-size: 1.2rem;
+    top: 5px;
+    right: 5px;
+  }
+}
+
+/* Dark mode for modal */
+@media (prefers-color-scheme: dark) {
+  .product-image-modal {
+    background: rgba(30, 41, 59, 0.98);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  }
+
+  .modal-close-btn {
+    color: #cbd5e0;
+  }
+
+  .modal-close-btn:hover {
+    color: #f87171;
+  }
+
+  .modal-slider-arrow {
+    background: rgba(255, 255, 255, 0.2); /* Açık şeffaf ok */
+    color: #e2e8f0;
+  }
+
+  .modal-slider-arrow:hover {
+    background: rgba(255, 255, 255, 0.3); /* Hover'da daha açık */
+  }
+} 

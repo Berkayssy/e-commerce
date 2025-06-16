@@ -1,0 +1,87 @@
+.dashboard-container {
+  min-height: calc(100vh - 80px);
+  padding: 2rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(79, 70, 229, 0.1) 100%);
+}
+
+.dashboard-title {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #e0e0e0; /* Changed to lighter color for glassmorphism */
+  font-size: 2.8rem; /* Increased font size */
+  font-weight: 800;
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); /* Adjusted gradient for vibrancy */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3); /* Added text shadow */
+}
+
+.dashboard-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2rem;
+  align-items: start;
+}
+
+.product-section {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.basket-section {
+  position: sticky;
+  top: 100px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  height: fit-content;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .dashboard-content {
+    grid-template-columns: 1fr;
+  }
+
+  .basket-section {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-container {
+    padding: 1rem;
+  }
+
+  .product-section,
+  .basket-section {
+    padding: 1rem;
+  }
+
+  .dashboard-title {
+    font-size: 2.2rem;
+  }
+}
+
+/* Dark mode adjustments (if applicable to overall theme) */
+@media (prefers-color-scheme: dark) {
+  .dashboard-title {
+    color: #f0f0f0;
+  }
+
+  .basket-section {
+    background: rgba(0, 0, 0, 0.2); /* Darker glassmorphism background */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  }
+} 

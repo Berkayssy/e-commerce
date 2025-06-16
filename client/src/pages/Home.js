@@ -1,41 +1,41 @@
 import React from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import './Home.css';
 
 const Home = () => {
   const { token } = useAuth();
 
+  const renderButtons = () => {
+    if (token) {
+      return (
+        <Link to="/products" className="home-btn">
+          View Products
+        </Link>
+      );
+    }
+
+    return (
+      <>
+        <Link to="/login" className="home-btn">
+          Login
+        </Link>
+        <Link to="/register" className="home-btn">
+          Register
+        </Link>
+      </>
+    );
+  };
+
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: 'max(100vh, 100%)',
-      textAlign: 'center',
-      background: 'linear-gradient(to bottom right, #282c34, #1c1f24)',
-      color: 'white',
-      padding: '2rem',
-    }}>
-      <h1 style={{ fontSize: '3rem', marginBottom: '1rem' }}>Welcome to Our Shop 🛍️</h1>
-      <p style={{ fontSize: '1.2rem', maxWidth: '600px', marginBottom: '2rem' }}>
+    <div className="home-container">
+      <h1 className="home-title">Welcome to Our Shop 🛍️</h1>
+      <p className="home-description">
         Discover amazing products tailored just for you. High quality, affordable, and fast shipping.
       </p>
-
-      {token ? (
-        <Link to="/products">
-          <button className='login-btn'>View Products</button>
-        </Link>
-      ) : (
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <Link to="/login">
-            <button className='login-btn'>Login</button>
-          </Link>
-          <Link to="/register">
-            <button className='login-btn'>Register</button>
-          </Link>
-        </div>
-      )}
+      <div className="home-buttons">
+        {renderButtons()}
+      </div>
     </div>
   );
 };
