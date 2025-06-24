@@ -2,15 +2,19 @@ const Product = require("../models/Product");
 
 exports.createProducts = async (req, res) => {
     try {
-        const { name, description, price, stock, catoregory, imageUrl } = req.body;
+        const { name, description, price, stock, category } = req.body;
+        const imageFiles = req.files;
+        const images = imageFiles && imageFiles.length > 0
+            ? imageFiles.map(file => file.secure_url || file.path || file.url)
+            : ["https://res.cloudinary.com/demo/image/upload/v1719240000/no-image.png"];
 
         const newProduct = new Product({
             name,
             description,
             price,
             stock,
-            catoregory,
-            imageUrl
+            category,
+            images
         });
         await newProduct.save();
 

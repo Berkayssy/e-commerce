@@ -6,7 +6,7 @@ import './Home.css';
 
 const Home = () => {
   const { token } = useAuth();
-
+// for render early wake up
   useEffect( () => {
     const wakeServer = async () => {
       try {

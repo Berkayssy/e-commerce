@@ -92,8 +92,7 @@ const AddProduct = () => {
         if (name === "imageFiles") {
             setProduct(prev => ({
                 ...prev,
-                imageFiles: Array.from(files || []),
-                imageUrl: ""
+                imageFiles: Array.from(files || [])
             }));
             return;
         }
@@ -129,11 +128,7 @@ const AddProduct = () => {
                 [name]: numValue
             }));
         } else if (name === "imageUrl") {
-            setProduct(prev => ({
-                ...prev,
-                [name]: value,
-                imageFiles: []
-            }));
+            return;
         } else {
             setProduct(prev => ({
                 ...prev,
@@ -155,6 +150,12 @@ const AddProduct = () => {
             return;
         }
 
+        if (!product.imageFiles || product.imageFiles.length === 0) {
+            setError("En az bir fotoğraf yüklemelisiniz.");
+            setIsSubmitting(false);
+            return;
+        }
+
         try {
             const token = localStorage.getItem("token");
             if (!token) {
@@ -167,19 +168,16 @@ const AddProduct = () => {
             formData.append("price", Number(product.price));
             formData.append("stock", Number(product.stock));
             formData.append("category", product.category);
-            
+
             if (product.imageFiles && product.imageFiles.length > 0) {
                 product.imageFiles.forEach(file => {
                     formData.append("images", file);
                 });
-            } else if (product.imageUrl) {
-                formData.append("imageUrl", product.imageUrl);
             }
 
             await axios.post(`${process.env.REACT_APP_API_URL}/products`, formData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data',
                 },
             });
 
@@ -250,22 +248,12 @@ const AddProduct = () => {
                     onChange={handleChange} 
                 />
                 <input 
-                    className="add-product-input" 
-                    type="text"
-                    name="imageUrl" 
-                    placeholder="Image URL (optional if uploading files)" 
-                    value={product.imageUrl} 
-                    onChange={handleChange} 
-                    disabled={product.imageFiles.length > 0}
-                />
-                <input 
                     className="add-product-input file-input" 
                     type="file"
                     name="imageFiles"
                     accept="image/*"
                     multiple
                     onChange={handleChange} 
-                    disabled={!!product.imageUrl}
                 />
                 {imagePreviews.length > 0 && (
                     <div className="image-previews-container">

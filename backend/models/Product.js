@@ -15,8 +15,12 @@ const productSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
-    category: String,
-    imageUrl: String
+    category: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    images: [String]
 },{timestamps: true});
 
 module.exports = mongoose.model("Product", productSchema);
