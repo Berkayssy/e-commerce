@@ -14,6 +14,6 @@ app.use(express.json()); // for read JSON veriables
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/", pingRoute);
+app.use("/api/ping", pingRoute);
 
 module.exports = app;
