@@ -14,6 +14,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem("role", res.data.user.role);
             setToken(res.data.token);
             setRole(res.data.user.role);
+            console.log("Gecikme Nerdeee");
         } catch (err) {
             throw err;
         }

@@ -1,10 +1,23 @@
-import React from 'react';
+import React, { useEffect }from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import './Home.css';
 
 const Home = () => {
   const { token } = useAuth();
+
+  useEffect( () => {
+    const wakeServer = async () => {
+      try {
+        await axios.get(`${process.env.REACT_APP_API_URL}/ping`);
+        console.log("Server pinged and awake.");
+      } catch (err) {
+        console.log("Ping failed", err.message);
+      }
+    }
+    wakeServer();
+  },[]);
 
   const renderButtons = () => {
     if (token) {
