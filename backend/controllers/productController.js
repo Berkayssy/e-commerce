@@ -45,13 +45,26 @@ exports.getProductById = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
     try {
-        const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const { name, description, price, stock, category } = req.body;
+        let existingImages = req.body.existingImages ? JSON.parse(req.body.existingImages) : [];
+        if (existingImages.length === 0 && req.body.imageUrl) {
+            existingImages.push(req.body.imageUrl);
+        }
+        const newImageFiles = req.files || [];
+        const newImages = newImageFiles.map(file => file.secure_url || file.path);
+        const images = [...existingImages, ...newImages];
+
+        const updatedProduct = await Product.findByIdAndUpdate(
+            req.params.id,
+            { name, description, price, stock, category, images },
+            { new: true }
+        );
         if (!updatedProduct) return res.status(404).json({ error: "Product not found" });
         res.status(200).json({ message: "Product updated successfully", product: updatedProduct });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
-}
+};
 
 exports.deleteProduct = async (req, res) => {
     try {

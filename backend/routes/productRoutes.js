@@ -11,7 +11,7 @@ router.get("/:id", productController.getProductById);
 
 // Only admin can access
 router.post("/", verifyToken, upload.array('images', 10), productController.createProducts);
-router.put("/:id", verifyToken, productController.updateProduct);
+router.put("/:id", verifyToken, upload.array('images', 10), productController.updateProduct);
 router.delete("/:id", verifyToken, verifyAdmin, productController.deleteProduct);
 
 module.exports = router;

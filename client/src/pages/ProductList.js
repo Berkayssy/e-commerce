@@ -19,6 +19,9 @@ const ProductList = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [editImages, setEditImages] = useState([]);
+  const [newImages, setNewImages] = useState([]);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const isAdmin = localStorage.getItem("role") === "admin";
 
@@ -71,9 +74,11 @@ const ProductList = () => {
         },
       });
       setProducts(products.filter((p) => p._id !== id));
+      setDeleteConfirmId(null);
     } catch (err) {
       console.error("Error deleting product:", err);
       setError("Failed to delete product. Please try again.");
+      setDeleteConfirmId(null);
     }
   };
 
@@ -86,22 +91,67 @@ const ProductList = () => {
       stock: product.stock,
       category: product.category 
     });
+    setEditImages(
+      product.images && product.images.length > 0
+        ? [...product.images]
+        : (product.imageUrl ? [product.imageUrl] : [])
+    );
+    setNewImages([]);
     setUpdate(product._id);
+  };
+
+  const handleRemoveEditImage = (index) => {
+    setEditImages(prev => {
+      const removed = prev[index];
+      // Eğer silinen görsel bir file ise, newImages'tan da çıkar
+      if (removed && removed.preview) {
+        setNewImages(nPrev => nPrev.filter(f => f.preview !== removed.preview));
+        URL.revokeObjectURL(removed.preview);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const handleNewImagesChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    // Önizleme için geçici url oluştur
+    const previews = files.map(file => Object.assign(file, { preview: URL.createObjectURL(file) }));
+    setNewImages(prev => [...prev, ...previews]);
+    setEditImages(prev => [...prev, ...previews]);
   };
 
   const handleUpdate = async (id) => {
     try {
       setError(null);
-      await axios.put(`${process.env.REACT_APP_API_URL}/products/${id}`, edit, {
+      const formData = new FormData();
+      formData.append('name', edit.name);
+      formData.append('description', edit.description);
+      formData.append('price', edit.price);
+      formData.append('stock', edit.stock);
+      formData.append('category', edit.category);
+      // Sadece url olanları gönder
+      const existingUrls = editImages.filter(img => typeof img === 'string');
+      formData.append('existingImages', JSON.stringify(existingUrls));
+      // Sadece file olanları gönder
+      newImages.forEach(file => {
+        formData.append('images', file);
+      });
+      await axios.put(`${process.env.REACT_APP_API_URL}/products/${id}`, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      // Güncel ürünleri çek
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/products`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-      const updated = products.map((p) =>
-        p._id === id ? { ...p, ...edit } : p
-      );
-      setProducts(updated);
+      setProducts(res.data.products);
       setEdit({ name: "", description: "", price: "", stock: "", category: "" });
+      setEditImages([]);
+      setNewImages([]);
       setUpdate(null);
     } catch (err) {
       console.error("Error updating product:", err.response?.data || err.message);
@@ -201,6 +251,25 @@ const ProductList = () => {
                   onChange={(e) => setEdit({ ...edit, category: e.target.value })}
                   placeholder="Category"
                 />
+                <div className="edit-images-list">
+                  {editImages.filter(Boolean).map((img, idx) => (
+                    <div key={idx} className="edit-image-thumb">
+                      <img src={typeof img === 'string' ? img : (img.preview ? img.preview : '')} alt="product" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 4, marginRight: 8 }} />
+                      <button type="button" className="product-edit-save-btn" onClick={() => handleRemoveEditImage(idx)} style={{ marginLeft: 4, padding: '2px 8px', fontSize: 12 }}>Remove</button>
+                    </div>
+                  ))}
+                </div>
+                <label htmlFor={`new-images-input-${p._id}`} className="product-edit-save-btn" style={{ display: 'inline-block', margin: '8px 0', padding: '6px 16px', fontSize: 14, cursor: 'pointer' }}>
+                  Add Images
+                  <input
+                    id={`new-images-input-${p._id}`}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={handleNewImagesChange}
+                  />
+                </label>
                 <button
                   className="product-edit-save-btn"
                   onClick={() => handleUpdate(p._id)}
@@ -220,7 +289,11 @@ const ProductList = () => {
               <>
                 <img 
                   className="product-image" 
-                  src={p.imageUrl || 'https://store.storeimages.cdn-apple.com/1/as-images.apple.com/is/mbp14-spaceblack-select-202410?wid=892&hei=820&fmt=jpeg&qlt=90&.v=YnlWZDdpMFo0bUpJZnBpZjhKM2M3VGhTSEZFNjlmT2xUUDNBTjljV1BxWjZkZE52THZKR1lubXJyYmRyWWlhOXZvdUZlR0V0VUdJSjBWaDVNVG95Yk15Y0c3T3Y4UWZwZExHUFdTUC9lN28'}
+                  src={
+                    (p.images && Array.isArray(p.images) && p.images.length > 0 && p.images[0]) ||
+                    p.imageUrl ||
+                    'https://static.nike.com/a/images/c_limit,w_592,f_auto/t_product_v1/bb3c451c-65f9-41c0-96e7-4ef839717e5d/JR+ZOOM+SUPERFLY+10+ACAD+FGMG.png'
+                  }
                   alt={p.name}
                   onError={(e) => {
                     e.target.src = 'https://static.nike.com/a/images/c_limit,w_592,f_auto/t_product_v1/bb3c451c-65f9-41c0-96e7-4ef839717e5d/JR+ZOOM+SUPERFLY+10+ACAD+FGMG.png';
@@ -242,13 +315,21 @@ const ProductList = () => {
                     >
                       Edit
                     </button>
-                    <button
-                      className="product-action-delete-btn"
-                      onClick={() => handleDelete(p._id)}
-                      disabled={isBasketLoading}
-                    >
-                      Delete
-                    </button>
+                    {deleteConfirmId === p._id ? (
+                      <span className="delete-confirm-popover">
+                        <span>Are you sure?</span>
+                        <button className="product-edit-save-btn" style={{marginLeft: 4, padding: '2px 8px', fontSize: 12}} onClick={() => handleDelete(p._id)}>Yes</button>
+                        <button className="product-edit-cancel-btn" style={{marginLeft: 4, padding: '2px 8px', fontSize: 12}} onClick={() => setDeleteConfirmId(null)}>No</button>
+                      </span>
+                    ) : (
+                      <button
+                        className="product-action-delete-btn"
+                        onClick={() => setDeleteConfirmId(p._id)}
+                        disabled={isBasketLoading}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 )}
                 {!isAdmin && (
