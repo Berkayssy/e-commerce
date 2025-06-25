@@ -19,6 +19,14 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['user', 'admin'],
         default: 'user'
+    },
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
+    profilePicture: {
+        type: String
     }
 },{timestamps: true});
 

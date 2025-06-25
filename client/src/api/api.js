@@ -15,3 +15,13 @@ instance.interceptors.request.use(
 );  // if token have every request
 
 export default instance;
+
+export const fetchAdminDashboard = async () => {
+    const res = await instance.get('/admin/dashboard');
+    return res.data;
+};
+
+export const googleLogin = async (token) => {
+    const res = await instance.post('/auth/google', { token });
+    return res.data;
+};

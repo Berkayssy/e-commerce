@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Auth Callback</title>
+</head>
+<body>
+    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
+        <div style="text-align: center;">
+            <h2>Processing authentication...</h2>
+            <p>Please wait while we complete your sign-in.</p>
+        </div>
+    </div>
+
+    <script>
+        // URL'den token'ları al
+        const urlParams = new URLSearchParams(window.location.hash.substring(1));
+        const idToken = urlParams.get('id_token');
+        const accessToken = urlParams.get('access_token');
+        const nonce = urlParams.get('nonce');
+        const error = urlParams.get('error');
+
+        if (idToken) {
+            // ID token ile başarılı authentication
+            window.opener.postMessage({
+                type: 'GOOGLE_AUTH_SUCCESS',
+                id_token: idToken,
+                nonce: nonce
+            }, window.location.origin);
+        } else if (accessToken) {
+            // Access token ile başarılı authentication
+            window.opener.postMessage({
+                type: 'GOOGLE_AUTH_SUCCESS',
+                access_token: accessToken
+            }, window.location.origin);
+        } else if (error) {
+            // Hata durumu
+            window.opener.postMessage({
+                type: 'GOOGLE_AUTH_ERROR',
+                error: error
+            }, window.location.origin);
+        } else {
+            // Bilinmeyen hata
+            window.opener.postMessage({
+                type: 'GOOGLE_AUTH_ERROR',
+                error: 'Unknown error occurred'
+            }, window.location.origin);
+        }
+
+        // Popup'ı güvenli şekilde kapat
+        setTimeout(() => {
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.close();
+                }
+            } catch (e) {
+                // Hata yutuluyor, uyarı engellenir
+            }
+        }, 1000);
+    </script>
+</body>
+</html> 

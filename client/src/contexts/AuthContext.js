@@ -9,6 +9,16 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (credentials) => {
         try {
+            // Eğer credentials bir obje ise ve token içeriyorsa (Google OAuth)
+            if (credentials && credentials.token && credentials.user) {
+                localStorage.setItem("token", credentials.token);
+                localStorage.setItem("role", credentials.user.role);
+                setToken(credentials.token);
+                setRole(credentials.user.role);
+                return;
+            }
+            
+            // Normal login
             const res = await axios.post(`${process.env.REACT_APP_API_URL}/auth/login`, credentials);
             localStorage.setItem("token", res.data.token);
             localStorage.setItem("role", res.data.user.role);

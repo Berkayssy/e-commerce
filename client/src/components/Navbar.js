@@ -80,7 +80,7 @@ const Navbar = () => {
                             className='admin-nav-button' 
                             onClick={() => navigate("/dashboard")}
                         >
-                            New Product
+                           Dashboard
                         </button>
                     )}
                     {token && <button className='logout-nav-button' onClick={handleLogout}>Logout</button>}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { googleLogin } from "../api/api";
 import './Login.css';
 
 const Login = () => {
@@ -55,6 +56,149 @@ const Login = () => {
             console.error(err.response?.data || err.message);
             setError(err.response?.data || { error: "Login failed" });
         } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleGoogleLogin = async () => {
+        setIsLoading(true);
+        setError("");
+        
+        // Google Client ID kontrolü
+        if (!process.env.REACT_APP_GOOGLE_CLIENT_ID) {
+            setError("Google Client ID is not configured");
+            setIsLoading(false);
+            return;
+        }
+        
+        try {
+            // Nonce oluştur (güvenlik için)
+            const nonce = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            
+            // Google OAuth popup'ını aç - ID token için
+            const redirectUri = `${window.location.origin}/google-callback.html`;
+            const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.REACT_APP_GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=email profile&prompt=select_account&nonce=${nonce}`;
+            
+            const popup = window.open(googleAuthUrl, 'googleAuth', 'width=500,height=600,scrollbars=yes,resizable=yes');
+            
+            if (!popup) {
+                setError("Popup blocked. Please allow popups for this site.");
+                setIsLoading(false);
+                return;
+            }
+            
+            // Popup'tan gelen mesajı dinle
+            const messageHandler = async (event) => {
+                if (event.origin !== window.location.origin) return;
+                
+                if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+                    const { id_token } = event.data;
+                    
+                    try {
+                        // Google ID token'ını backend'e gönder
+                        const response = await googleLogin(id_token);
+                        
+                        // Auth context'e kaydet
+                        await login({ token: response.token, user: response.user });
+                        
+                        popup.close();
+                        window.removeEventListener('message', messageHandler);
+                        navigate("/products");
+                    } catch (err) {
+                        console.error('Backend login error:', err);
+                        setError("Login failed. Please try again.");
+                        popup.close();
+                    }
+                } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
+                    setError("Google authentication failed: " + (event.data.error || 'Unknown error'));
+                    popup.close();
+                }
+                
+                window.removeEventListener('message', messageHandler);
+                setIsLoading(false);
+            };
+            
+            window.addEventListener('message', messageHandler);
+            
+        } catch (err) {
+            console.error('Google login error:', err);
+            setError("Google authentication failed");
+            setIsLoading(false);
+        }
+    };
+
+    // Alternatif: Access Token ile Google Login
+    const handleGoogleLoginWithAccessToken = async () => {
+        setIsLoading(true);
+        setError("");
+        
+        try {
+            // Google OAuth popup'ını aç - Access token için
+            const redirectUri = `${window.location.origin}/google-callback.html`;
+            const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.REACT_APP_GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=email profile&prompt=select_account`;
+            
+            const popup = window.open(googleAuthUrl, 'googleAuth', 'width=500,height=600,scrollbars=yes,resizable=yes');
+            
+            if (!popup) {
+                setError("Popup blocked. Please allow popups for this site.");
+                setIsLoading(false);
+                return;
+            }
+            
+            const messageHandler = async (event) => {
+                if (event.origin !== window.location.origin) return;
+                
+                if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+                    const { access_token } = event.data;
+                    
+                    try {
+                        // Google access token ile kullanıcı bilgilerini al
+                        const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                            headers: {
+                                'Authorization': `Bearer ${access_token}`
+                            }
+                        });
+                        
+                        if (!userInfoResponse.ok) {
+                            throw new Error('Failed to get user info from Google');
+                        }
+                        
+                        const userInfo = await userInfoResponse.json();
+                        
+                        // Kullanıcı bilgilerini backend'e gönder
+                        const response = await googleLogin({
+                            access_token,
+                            userInfo
+                        });
+                        
+                        // Auth context'e kaydet - doğru formatta
+                        await login({
+                            token: response.token,
+                            user: response.user
+                        });
+                        
+                        popup.close();
+                        window.removeEventListener('message', messageHandler);
+                        navigate("/products");
+                    } catch (err) {
+                        console.error('Backend login error:', err);
+                        setError("Login failed. Please try again.");
+                        popup.close();
+                    }
+                } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
+                    setError("Google authentication failed: " + (event.data.error || 'Unknown error'));
+                    popup.close();
+                }
+                
+                window.removeEventListener('message', messageHandler);
+                setIsLoading(false);
+            };
+            
+            window.addEventListener('message', messageHandler);
+            
+        } catch (err) {
+            console.error('Google login error:', err);
+            setError("Google authentication failed");
             setIsLoading(false);
         }
     };
@@ -117,7 +261,12 @@ const Login = () => {
                 </div>
 
                 <div className="social-login-buttons">
-                    <button className="social-btn google" aria-label="Sign in with Google">
+                    <button 
+                        className="social-btn google" 
+                        aria-label="Sign in with Google"
+                        onClick={handleGoogleLoginWithAccessToken}
+                        disabled={isLoading}
+                    >
                         <img src="https://img.icons8.com/color/48/000000/google-logo.png" alt="Google" />
                         <span>Google</span>
                     </button>
