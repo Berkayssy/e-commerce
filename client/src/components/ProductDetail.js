@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import Modal from 'react-modal';
-import OrderModal from '../modals/OrderModal';
+import { useBasket } from '../contexts/BasketContext';
 import "./ProductDetail.css";
 
 Modal.setAppElement('#root');
@@ -14,7 +14,7 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const { addToBasket, removeFromBasket, basket } = useBasket();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -26,41 +26,28 @@ const ProductDetail = () => {
         });
         setProduct(res.data.product);
       } catch (err) {
-        console.error("Error fetching product detail:", err.response?.data || err.message);
         setError("Failed to load product details. Please try again.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchProduct();
   }, [id]);
 
-  // Reset currentImageIndex when product changes
   useEffect(() => {
-    if (product) {
-      setCurrentImageIndex(0);
-    }
+    if (product) setCurrentImageIndex(0);
   }, [product]);
 
   const productImages = product?.images && product.images.length > 0 
     ? product.images 
     : (product?.imageUrl ? [product.imageUrl] : []);
 
-  const goToNextSlide = () => {
-    setCurrentImageIndex((prevIndex) => 
-      (prevIndex + 1) % productImages.length
-    );
-  };
-
-  const goToPrevSlide = () => {
-    setCurrentImageIndex((prevIndex) => 
-      (prevIndex - 1 + productImages.length) % productImages.length
-    );
-  };
-
+  const goToNextSlide = () => setCurrentImageIndex((prev) => (prev + 1) % productImages.length);
+  const goToPrevSlide = () => setCurrentImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
+  const handleAddToBasket = () => addToBasket(product);
+  const isInBasket = product && basket.some((item) => item._id === product._id);
 
   if (loading) return <p className="loading">Loading...</p>;
   if (error) return <div className="error">{error}</div>;
@@ -68,19 +55,14 @@ const ProductDetail = () => {
 
   return (
     <div className="product-detail-page">
-      <Link to="/products" className="back-to-products-link">
-        ← Back to Products
-      </Link>
-
+      <Link to="/products" className="back-to-products-link">← Back to Products</Link>
       <div className="product-detail-card">
         <div className="image-slider-container">
           <img 
             className="product-detail-image" 
             src={productImages[currentImageIndex] || '/placeholder-image.png'}
             alt={product.name}
-            onError={(e) => {
-              e.target.src = '/placeholder-image.png';
-            }}
+            onError={e => { e.target.src = '/placeholder-image.png'; }}
             onClick={openModal}
           />
           {productImages.length > 1 && (
@@ -90,21 +72,40 @@ const ProductDetail = () => {
             <button className="slider-arrow right-arrow" onClick={goToNextSlide}>→</button>
           )}
         </div>
-        
         <h2 className="product-detail-name">{product.name}</h2>
         <p className="product-detail-description"><strong>Description:</strong> {product.description}</p>
         <p className="product-detail-price"><strong>Price:</strong> ${product.price}</p>
         <p className="product-detail-stock"><strong>Stock:</strong> {product.stock}</p>
         <p className="product-detail-category"><strong>Category:</strong> {product.category}</p>
-
-        <button
-          className="product-detail-confirm-order-btn"
-          onClick={() => setIsOrderModalOpen(true)}
-        >
-          Confirm Order
-        </button>
+        {product && (
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+            {isInBasket ? (
+              <button
+                className="product-detail-remove-basket-btn product-detail-add-to-basket-btn in-basket"
+                onClick={() => removeFromBasket(product._id)}
+              >
+                Remove from Basket
+              </button>
+            ) : (
+              <button
+                className="product-detail-add-to-basket-btn"
+                onClick={handleAddToBasket}
+              >
+                Add to Basket
+              </button>
+            )}
+            <button
+              className="product-detail-buy-now-btn product-detail-add-to-basket-btn buy-now-animated-btn"
+              onClick={() => {
+                addToBasket(product);
+                window.location.href = '/basket';
+              }}
+            >
+              Buy Now
+            </button>
+          </div>
+        )}
       </div>
-
       <Modal
         isOpen={isModalOpen}
         onRequestClose={closeModal}
@@ -124,11 +125,6 @@ const ProductDetail = () => {
           <button className="modal-slider-arrow modal-right-arrow" onClick={goToNextSlide}>→</button>
         )}
       </Modal>
-
-      <OrderModal
-        isOpen={isOrderModalOpen}
-        onClose={() => setIsOrderModalOpen(false)}
-      />
     </div>
   );
 };

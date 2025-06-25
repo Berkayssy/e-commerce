@@ -54,8 +54,8 @@ export default function MyOrderList() {
 
   if (loading && page === 1) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
+      <div className="my-loading-container">
+        <div className="my-loading-spinner"></div>
         <p>Loading your orders...</p>
       </div>
     );
@@ -63,9 +63,9 @@ export default function MyOrderList() {
 
   if (error) {
     return (
-      <div className="error-container">
-        <p className="error-message">{error}</p>
-        <button onClick={() => window.location.reload()} className="retry-button">
+      <div className="my-error-container">
+        <p className="my-error-message">{error}</p>
+        <button onClick={() => window.location.reload()} className="my-retry-button">
           Retry
         </button>
       </div>
@@ -74,10 +74,10 @@ export default function MyOrderList() {
 
   if (myOrders.length === 0 && !loading) {
     return (
-      <div className="no-orders">
-        <h2>No Orders Found</h2>
-        <p>You haven't placed any orders yet.</p>
-        <button onClick={() => navigate('/')} className="shop-now-button">
+      <div className="my-no-orders">
+        <h2>Your Orders</h2>
+        <p>You haven't placed any orders yet. Start shopping to see your orders here!</p>
+        <button onClick={() => navigate('/products')} className="my-shop-now-button">
           Start Shopping
         </button>
       </div>

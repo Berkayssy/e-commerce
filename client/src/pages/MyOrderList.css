@@ -258,6 +258,26 @@
   margin-bottom: 1.5rem;
 }
 
+.my-shop-now-button {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.35);
+}
+
+.my-shop-now-button:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(99, 102, 241, 0.5);
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+}
+
 @media (max-width: 768px) {
   .my-order-list-container {
     padding: 0 1rem;

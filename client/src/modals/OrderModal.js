@@ -66,7 +66,6 @@ const OrderModal = ({ isOpen, onClose }) => {
         },
         paymentInfo: {
           cardHolder: fullName,
-          cardNumber: cardNumber.replace(/\s/g, ''),
           cardLast4: cardNumber.slice(-4),
           expiry: "12/26"
         }

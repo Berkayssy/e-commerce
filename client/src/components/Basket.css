@@ -70,9 +70,10 @@
 }
 
 .basket-empty-button:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(99, 102, 241, 0.5);
-  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.10);
+  color: white;
+  transform: none;
 }
 
 .basket-items {
@@ -189,13 +190,14 @@
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 500;
-  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.10);
 }
 
 .remove-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.45);
-  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.10);
+  color: white;
+  transform: none;
 }
 
 .basket-summary {
@@ -238,13 +240,14 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.35);
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.10);
 }
 
 .clear-basket-button:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(239, 68, 68, 0.5);
-  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.10);
+  color: white;
+  transform: none;
 }
 
 .confirm-order-button {
@@ -257,13 +260,14 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.10);
 }
 
 .confirm-order-button:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(99, 102, 241, 0.5);
-  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.10);
+  color: white;
+  transform: none;
 }
 
 /* Responsive tasarım */

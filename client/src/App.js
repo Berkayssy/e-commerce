@@ -14,11 +14,12 @@ import Order from './pages/Order';
 import MyOrderList from './pages/MyOrderList';
 import ProductDetail from './components/ProductDetail';
 import Basket from './components/Basket';
-import OrderHistory from './components/OrderHistory';
+
 
 import { AuthProvider } from '../src/contexts/AuthContext';
 import { BasketProvider } from '../src/contexts/BasketContext';
 import { OrderProvider } from '../src/contexts/OrderContext';
+import { SearchProvider } from '../src/contexts/SearchContext';
 
 import { useAuth } from '../src/contexts/AuthContext';
 
@@ -41,7 +42,6 @@ function AppContent() {
         <Route path="/my" element={<MyOrderList />} />
         <Route path="/basket" element={<Basket />} />
         <Route path="/products/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>}/>
-        <Route path="/orders" element={<OrderHistory />} />
         <Route path="*" element={<Home />} />
       </Routes>
     </Router>
@@ -53,7 +53,9 @@ function App() {
     <AuthProvider>
       <BasketProvider>
         <OrderProvider>
-          <AppContent className="App" />
+          <SearchProvider>
+            <AppContent className="App" />
+          </SearchProvider>
         </OrderProvider>
       </BasketProvider>
     </AuthProvider>

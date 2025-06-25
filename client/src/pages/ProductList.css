@@ -144,31 +144,27 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .product-edit-save-btn {
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: white;
   border: none;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
 }
 
 .product-edit-save-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
 }
 
 .product-edit-cancel-btn {
   background: rgba(107, 114, 128, 0.1);
   color: #4b5563;
   border: 1px solid rgba(107, 114, 128, 0.2);
-  box-shadow: 0 4px 15px rgba(107, 114, 128, 0.1);
 }
 
 .product-edit-cancel-btn:hover {
-  transform: translateY(-2px);
-  background: rgba(107, 114, 128, 0.2);
-  box-shadow: 0 8px 25px rgba(107, 114, 128, 0.2);
+  background: linear-gradient(135deg, #be185d 0%, #dc2626 80%);
 }
 
 .product-admin-actions,
@@ -189,6 +185,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .product-action-edit-btn {
@@ -198,8 +195,7 @@
 }
 
 .product-action-edit-btn:hover {
-  transform: translateY(-2px);
-  background: rgba(99, 102, 241, 0.2);
+  background: #f3f4f6;
 }
 
 .product-action-delete-btn {
@@ -209,20 +205,17 @@
 }
 
 .product-action-delete-btn:hover {
-  transform: translateY(-2px);
-  background: rgba(239, 68, 68, 0.2);
+  background: #f3f4f6;
 }
 
 .add-to-basket-btn {
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: white;
   border: none;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
 }
 
 .add-to-basket-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
 }
 
 .add-to-basket-btn.in-basket {
@@ -230,7 +223,7 @@
 }
 
 .add-to-basket-btn.in-basket:hover {
-  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3); /* Sepetteyse hover gölge */
+  background: linear-gradient(135deg, #be185d 0%, #dc2626 80%);
 }
 
 .product-details-link {

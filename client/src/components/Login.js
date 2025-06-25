@@ -132,6 +132,7 @@ const Login = () => {
         } catch (err) {
             console.error('Google login error:', err);
             setError("Google authentication failed");
+            alert("If you are experiencing issues with Google login, please disable your browser extensions or try again in incognito mode.");
             setIsLoading(false);
         }
     };

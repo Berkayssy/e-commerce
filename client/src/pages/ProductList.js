@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import "./ProductList.css";
 import { useBasket } from "../contexts/BasketContext";
 import Modal from 'react-modal';
+import { useSearch } from '../contexts/SearchContext';
 
 // Ensure that react-modal is properly configured
 // If you already have it in index.js or App.js, you can remove it from here.
@@ -25,7 +26,8 @@ const ProductList = () => {
 
   const isAdmin = localStorage.getItem("role") === "admin";
 
-  const { basket, addToBasket } = useBasket();
+  const { basket, addToBasket, removeFromBasket } = useBasket();
+  const { searchTerm, selectedCategory } = useSearch();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -207,11 +209,18 @@ const ProductList = () => {
     );
   };
 
+  // Filtrelenmiş ürünler:
+  const filteredProducts = products.filter((p) => {
+    const nameMatch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const categoryMatch = selectedCategory === 'All Categories' || (p.category && p.category === selectedCategory);
+    return nameMatch && categoryMatch;
+  });
+
   return (
     <div className="product-list-page">
       <h1 className="product-list-title">Our Products</h1>
       <div className="product-grid">
-        {products.map((p) => (
+        {filteredProducts.map((p) => (
           <div className="product-card" key={p._id}>
             {update === p._id ? (
               <div className="product-edit-mode">
@@ -334,13 +343,23 @@ const ProductList = () => {
                 )}
                 {!isAdmin && (
                   <div className="product-user-actions">
-                    <button
-                      className={`add-to-basket-btn ${isInBasket(p._id) ? "in-basket" : ""}`}
-                      onClick={() => handleBasketOperation(p)}
-                      disabled={isBasketLoading}
-                    >
-                      {isBasketLoading ? 'Loading...' : isInBasket(p._id) ? 'Remove from basket' : 'Add to basket'}
-                    </button>
+                    {!isInBasket(p._id) ? (
+                      <button
+                        className="add-to-basket-btn"
+                        onClick={() => handleBasketOperation(p)}
+                        disabled={isBasketLoading}
+                      >
+                        {isBasketLoading ? 'Loading...' : 'Add to basket'}
+                      </button>
+                    ) : (
+                      <button
+                        className="add-to-basket-btn in-basket"
+                        onClick={() => removeFromBasket(p._id)}
+                        disabled={isBasketLoading}
+                      >
+                        Remove from basket
+                      </button>
+                    )}
                     <Link className="product-details-link" to={`/products/${p._id}`}>
                       Go to Details
                     </Link>
