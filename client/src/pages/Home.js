@@ -30,7 +30,6 @@ const Home = () => {
   }, []);
 
   // Animate 'Build,' and 'Manage' letter by letter
-  const buildManageLetters = 'Build,Manage'.split('').filter(l => l !== ' ');
   const buildManageLetterRefs = useRef([]);
   useGsapFadeIn([
     heroIconRef,
