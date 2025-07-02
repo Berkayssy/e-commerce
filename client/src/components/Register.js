@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import api from "../api/api";
 import { useNavigate, Link } from "react-router-dom";
 import "./Register.css";
+import InputGroup from './common/InputGroup';
+import PasswordInput from './common/PasswordInput';
+import ErrorMessage from './common/ErrorMessage';
+import SocialLoginButtons from './common/SocialLoginButtons';
 
 const Register = () => {
     
@@ -12,7 +16,6 @@ const Register = () => {
         password: ""
     });
     
-    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
 
     const handleChange = (e) => {
@@ -20,6 +23,7 @@ const Register = () => {
             ...form,
             [e.target.name]: e.target.value
         });
+        if (error) setError("");
     };
 
     const handleSubmit = async (e) => {
@@ -38,45 +42,67 @@ const Register = () => {
             setError(err.response?.data?.error || "Registration failed. Try again.");
         }
     };
+
     return (
        <div className="register-page">
+            <div className="register-image-container">
+                <img src="/login-hero.jpg" alt="Luxury Car" className="register-hero-image" />
+                <div className="register-image-overlay"></div>
+            </div>
+            <div className="register-header">
+                <Link to="/" className="back-link">
+                    ← Back to Home
+                </Link>
+            </div>
             <div className="register-container">
                 <h1 className="welcome-back-title">Create an Account</h1>
                 <p className="welcome-back-subtitle">Sign up to start your journey</p>
                 <form onSubmit={handleSubmit}>
-                    <div className="input-group">
-                        <span className="icon">👤</span>
-                        <input required className="register-input" name="username" placeholder="Username" onChange={handleChange} />
-                    </div>
-                    <div className="input-group">
-                        <span className="icon">✉️</span>
-                        <input required className="register-input" name="email" placeholder="Email" onChange={handleChange} />
-                    </div>
-                    <div className="input-group password-input-wrapper">
-                        <span className="icon">🔒</span>
-                        <input required type={showPassword ? "text" : "password"} className="register-input" name="password" placeholder="Password" onChange={handleChange} />
-                        <button type="button" className="toggle-password-btn" onClick={() => setShowPassword((prev) => !prev)}>{showPassword ? "🙈" : "👁️"}</button>
-                    </div>
-                    <button className="register-signup-btn" type="submit">Register</button>
+                    <InputGroup
+                        icon="👤"
+                        name="username"
+                        placeholder="Username"
+                        value={form.username}
+                        onChange={handleChange}
+                        required
+                    />
+                    <InputGroup
+                        icon="✉️"
+                        name="email"
+                        placeholder="Email"
+                        value={form.email}
+                        onChange={handleChange}
+                        required
+                    />
+                    <PasswordInput
+                        name="password"
+                        placeholder="Password"
+                        value={form.password}
+                        onChange={handleChange}
+                        required
+                    />
+                    <button 
+                        className="register-signup-btn" 
+                        type="submit"
+                    >
+                        Register
+                    </button>
                 </form>
                 
                 <div className="or-continue-with">
                     <span>or continue with</span>
                 </div>
 
-                <div className="social-login-buttons">
-                    <button className="social-btn google">
-                        <img src="https://img.icons8.com/color/48/000000/google-logo.png" alt="Google" />
-                        <span>Google</span>
-                    </button>
-                    <button className="social-btn github">
-                        <img src="https://img.icons8.com/ios-filled/50/000000/github.png" alt="GitHub" />
-                        <span>GitHub</span>
-                    </button>
-                </div>
+                <SocialLoginButtons 
+                    onGoogle={() => {}}
+                    onWeb3={() => {}}
+                    loading={false}
+                />
 
-                <p className="login-link">Already have an account? <Link to="/login">Login</Link></p>
-                {error && <p className="error-message">{error}</p>}
+                <p className="login-link">
+                    Already have an account? <Link to="/login">Login</Link>
+                </p>
+                <ErrorMessage error={error} />
             </div>
        </div>
     );

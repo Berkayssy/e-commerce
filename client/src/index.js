@@ -4,13 +4,16 @@ import App from './App';
 import './styles/global.css';
 import reportWebVitals from './reportWebVitals';
 import Modal from 'react-modal';
+import { GsapProvider } from './contexts/GsapContext';
 
 Modal.setAppElement('#root');
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <GsapProvider>
+      <App />
+    </GsapProvider>
   </React.StrictMode>
 );
 

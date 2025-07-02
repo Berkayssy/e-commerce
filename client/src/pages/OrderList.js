@@ -1,6 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router";
+import useGsapFadeIn from '../components/common/useGsapFadeIn';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import ErrorMessage from '../components/common/ErrorMessage';
+import RetryButton from '../components/common/RetryButton';
 import "./OrderList.css";
 
 const OrderList = () => {
@@ -10,11 +14,19 @@ const OrderList = () => {
   const [updatingStatus, setUpdatingStatus] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const limit = 5; // Number of orders to load per request
-  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const limit = 5;
+  const navigate = useNavigate();
+
+  // GSAP refs
+  const pageRef = useRef(null);
+  const headerRef = useRef(null);
+  const filtersRef = useRef(null);
+  const ordersRef = useRef(null);
+  const orderCardsRef = useRef([]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -52,6 +64,20 @@ const OrderList = () => {
     fetchOrders();
   }, [navigate, page, limit]);
 
+  // GSAP animations
+  useGsapFadeIn([pageRef, headerRef, filtersRef, ordersRef], { 
+    stagger: 0.2, 
+    duration: 0.6, 
+    y: 30 
+  });
+
+  useGsapFadeIn(orderCardsRef.current, { 
+    stagger: 0.08, 
+    duration: 0.5, 
+    y: 30,
+    delay: 0.4 
+  });
+
   const handleLoadMore = () => {
     setPage(prevPage => prevPage + 1);
   };
@@ -82,148 +108,269 @@ const OrderList = () => {
     }
   };
 
+  const handleOrderClick = (order) => {
+    setSelectedOrder(selectedOrder === order._id ? null : order._id);
+  };
+
+  const getStatusColor = (status) => {
+    const statusColors = {
+      pending: '#f59e0b',
+      processing: '#3b82f6',
+      shipped: '#8b5cf6',
+      delivered: '#10b981',
+      cancelled: '#ef4444'
+    };
+    return statusColors[status] || '#6b7280';
+  };
+
+  const getStatusIcon = (status) => {
+    const statusIcons = {
+      pending: '⏳',
+      processing: '⚙️',
+      shipped: '📦',
+      delivered: '✅',
+      cancelled: '❌'
+    };
+    return statusIcons[status] || '📋';
+  };
+
+  const filteredOrders = orders.filter(order => {
+    if (statusFilter && order.status !== statusFilter) return false;
+    const orderDate = new Date(order.createdAt);
+    if (startDate && orderDate < new Date(startDate)) return false;
+    if (endDate && orderDate > new Date(endDate)) return false;
+    return true;
+  });
+
   if (loading && page === 1) {
-    return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Loading orders...</p>
-      </div>
-    );
+    return <LoadingSpinner message="Loading orders..." />;
   }
 
   if (error) {
     return (
-      <div className="error-container">
-        <p className="error-message">{error}</p>
-        <button onClick={() => window.location.reload()} className="retry-button">
-          Retry
-        </button>
+      <div className="order-error-container">
+        <ErrorMessage error={error} />
+        <RetryButton onRetry={() => window.location.reload()} />
       </div>
     );
   }
 
   if (orders.length === 0 && !loading) {
     return (
-      <div className="no-orders">
-        <h2>No Orders Found</h2>
-        <p>There are no orders in the system yet.</p>
+      <div className="order-no-orders" ref={pageRef}>
+        <div className="no-orders-content">
+          <div className="no-orders-icon">📦</div>
+          <h2>No Orders Found</h2>
+          <p>There are no orders in the system yet.</p>
+        </div>
       </div>
     );
   }
 
+  const statusOptions = [
+    { value: 'pending', label: 'Pending' },
+    { value: 'processing', label: 'Processing' },
+    { value: 'shipped', label: 'Shipped' },
+    { value: 'delivered', label: 'Delivered' },
+    { value: 'cancelled', label: 'Cancelled' }
+  ];
+
   return (
-    <div className="order-list-container">
-      <h1 className="order-list-title">Order Management</h1>
-      <div className="order-list-filters" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
-        <label style={{ color: '#fff' }}>
-          Status:
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ marginLeft: '0.5rem', padding: '0.3rem 0.6rem', borderRadius: '5px', border: '1px solid #ccc' }}>
-            <option value="">All</option>
-            <option value="pending">Pending</option>
-            <option value="processing">Processing</option>
-            <option value="shipped">Shipped</option>
-            <option value="delivered">Delivered</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </label>
-        <label style={{ color: '#fff' }}>
-          Start Date:
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ marginLeft: '0.5rem', padding: '0.3rem 0.6rem', borderRadius: '5px', border: '1px solid #ccc' }} />
-        </label>
-        <label style={{ color: '#fff' }}>
-          End Date:
-          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ marginLeft: '0.5rem', padding: '0.3rem 0.6rem', borderRadius: '5px', border: '1px solid #ccc' }} />
-        </label>
+    <div className="order-list-page" ref={pageRef}>
+      <div className="order-header" ref={headerRef}>
+        <h1>Order Management</h1>
+        <p>Manage and track all customer orders</p>
       </div>
-      <div className="order-list">
-        {orders
-          .filter(order => {
-            if (statusFilter && order.status !== statusFilter) return false;
-            const orderDate = new Date(order.createdAt);
-            if (startDate && orderDate < new Date(startDate)) return false;
-            if (endDate && orderDate > new Date(endDate)) return false;
-            return true;
-          })
-          .map((order) => (
-            <div key={order._id} className="order-item-list">
-              <div className="order-list-header">
-                <div className="order-list-id">Order #{order._id.slice(-6)}</div>
-                <div className="order-status-container">
-                  <select
-                    value={order.status}
-                    onChange={(e) => handleStatusUpdate(order._id, e.target.value)}
-                    disabled={updatingStatus === order._id}
-                    className={`status-select ${order.status}`}
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="processing">Processing</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                  {updatingStatus === order._id && (
-                    <div className="status-updating">Updating...</div>
-                  )}
+
+      <div className="order-filters" ref={filtersRef}>
+        <div className="filter-group">
+          <label className="filter-label">
+            Status Filter:
+            <select 
+              value={statusFilter} 
+              onChange={e => setStatusFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="">All Statuses</option>
+              {statusOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="filter-group">
+          <label className="filter-label">
+            Start Date:
+            <input 
+              type="date" 
+              value={startDate} 
+              onChange={e => setStartDate(e.target.value)}
+              className="filter-input"
+            />
+          </label>
+        </div>
+
+        <div className="filter-group">
+          <label className="filter-label">
+            End Date:
+            <input 
+              type="date" 
+              value={endDate} 
+              onChange={e => setEndDate(e.target.value)}
+              className="filter-input"
+            />
+          </label>
+        </div>
+
+        <div className="filter-stats">
+          <span className="filter-stat">
+            Total: {filteredOrders.length} orders
+          </span>
+        </div>
+      </div>
+
+      <div className="orders-container" ref={ordersRef}>
+        {filteredOrders.map((order, index) => (
+          <div 
+            key={order._id} 
+            className="order-card"
+            ref={el => orderCardsRef.current[index] = el}
+            data-order-id={order._id}
+            onClick={() => handleOrderClick(order)}
+          >
+            <div className="order-card-header">
+              <div className="order-info">
+                <div className="order-id">Order #{order._id.slice(-6)}</div>
+                <div className="order-date">
+                  {new Date(order.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </div>
+                <div className="order-customer">
+                  Customer: {order.user?.username || "Guest"}
                 </div>
               </div>
-
-              <div className="order-list-products">
-                {order.products.map((p) => (
-                  <div className="list-product-item" key={p._id}>
-                    <img 
-                      src={p.product?.imageUrl} 
-                      alt={p.product?.name}
-                      className="list-product-image"
-                      onError={(e) => {
-                        e.target.src = '/placeholder-image.png';
-                      }}
-                    />
-                    <div className="list-product-details">
-                      <span className="list-product-name">{p.product?.name || "Unnamed Product"}</span>
-                      <span className="list-product-quantity">x{p.quantity}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="order-list-summary">
-                <div className="list-total-price">
-                  Total: ${order.totalPrice.toFixed(2)}
+              
+              <div className="order-status-section">
+                <div 
+                  className="order-status-badge"
+                  style={{ backgroundColor: getStatusColor(order.status) }}
+                >
+                  <span className="status-icon">{getStatusIcon(order.status)}</span>
+                  <span className="status-text">
+                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                  </span>
                 </div>
-                <div className="list-order-date">
-                  Ordered on: {new Date(order.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-
-              <div className="order-list-contact">
-                <div className="order-list-user">
-                  <strong>Customer:</strong> {order.user?.username || "Guest"}
-                </div>
-                <div className="order-list-contact-info">
-                  <h3>Contact Information</h3>
-                  <div className="order-list-contact-details">
-                    <div className="order-list-contact-item">
-                      <strong>Full Name:</strong> {order.contactInfo?.fullName}
-                    </div>
-                    <div className="order-list-contact-item">
-                      <strong>Phone:</strong> {order.contactInfo?.phone}
-                    </div>
-                    <div className="order-list-contact-item">
-                      <strong>Email:</strong> {order.contactInfo?.email}
-                    </div>
-                    <div className="order-list-contact-item">
-                      <strong>Address:</strong> {order.contactInfo?.address}
-                    </div>
-                  </div>
-                </div>
+                
+                <select
+                  value={order.status}
+                  onChange={(e) => handleStatusUpdate(order._id, e.target.value)}
+                  disabled={updatingStatus === order._id}
+                  className="status-select"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {statusOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                
+                {updatingStatus === order._id && (
+                  <div className="status-updating">Updating...</div>
+                )}
               </div>
             </div>
-          ))}
+
+            <div className="order-products">
+              <div className="products-preview">
+                {order.products.slice(0, 3).map((p, productIndex) => (
+                  <div className="product-preview" key={p._id}>
+                    <img 
+                      src={p.product?.imageUrl || p.product?.images?.[0]} 
+                      alt={p.product?.name}
+                      className="product-preview-image"
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/60x60/1e293b/ffffff?text=Product';
+                      }}
+                    />
+                    <span className="product-quantity">x{p.quantity}</span>
+                  </div>
+                ))}
+                {order.products.length > 3 && (
+                  <div className="more-products">
+                    +{order.products.length - 3} more
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="order-summary">
+              <div className="order-total">
+                <span className="total-label">Total:</span>
+                <span className="total-amount">${order.totalPrice.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {selectedOrder === order._id && (
+              <div className="order-details">
+                <div className="order-products-full">
+                  <h4>Products</h4>
+                  {order.products.map((p) => (
+                    <div className="order-product-item" key={p._id}>
+                      <img 
+                        src={p.product?.imageUrl || p.product?.images?.[0]} 
+                        alt={p.product?.name}
+                        className="order-product-image"
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/80x80/1e293b/ffffff?text=Product';
+                        }}
+                      />
+                      <div className="order-product-info">
+                        <span className="order-product-name">{p.product?.name || "Unnamed Product"}</span>
+                        <span className="order-product-price">${p.product?.price} x {p.quantity}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="order-contact">
+                  <h4>Contact Information</h4>
+                  <div className="contact-details">
+                    {[
+                      { label: 'Name', value: order.contactInfo?.fullName },
+                      { label: 'Phone', value: order.contactInfo?.phone },
+                      { label: 'Email', value: order.contactInfo?.email },
+                      { label: 'Address', value: order.contactInfo?.address }
+                    ].map(contact => (
+                      <div key={contact.label} className="contact-item">
+                        <span className="contact-label">{contact.label}:</span>
+                        <span className="contact-value">{contact.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
+
       {hasMore && (
-        <button className="load-more-button" onClick={handleLoadMore} disabled={loading}>
-          {loading ? 'Loading...' : 'Load More Orders'}
-        </button>
+        <div className="load-more-container">
+          <button 
+            className="load-more-button" 
+            onClick={handleLoadMore} 
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : 'Load More Orders'}
+          </button>
+        </div>
       )}
     </div>
   );

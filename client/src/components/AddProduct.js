@@ -1,289 +1,372 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-import "./AddProduct.css";
-
-const INITIAL_FORM_STATE = {
-    name: "",
-    description: "",
-    price: "",
-    stock: "",
-    category: "",
-    imageUrl: "",
-    imageFiles: [],
-};
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { useGsap } from '../contexts/GsapContext';
+import ErrorMessage from './common/ErrorMessage';
+import LoadingSpinner from './common/LoadingSpinner';
+import './AddProduct.css';
 
 const AddProduct = () => {
-    const [product, setProduct] = useState(() => {
-        const savedData = localStorage.getItem('productFormData');
-        if (savedData) {
-            try {
-                const parsedData = JSON.parse(savedData);
-                const validatedData = {
-                    ...INITIAL_FORM_STATE,
-                    ...parsedData,
-                    imageFiles: []
-                };
-                return validatedData;
-            } catch (err) {
-                console.error('Error parsing saved form data:', err);
-                localStorage.removeItem('productFormData');
-            }
-        }
-        return INITIAL_FORM_STATE;
-    });
+  const navigate = useNavigate();
+  const { addProductRefs } = useGsap();
+  const { pageRef, formRef, imagePreviewRef } = addProductRefs;
+  const STORAGE_KEY = 'addProductFormData';
 
-    const [successMessage, setSuccessMessage] = useState("");
-    const [error, setError] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [imagePreviews, setImagePreviews] = useState([]);
-
-    useEffect(() => {
-        const newPreviews = product.imageFiles.map(file => URL.createObjectURL(file));
-        setImagePreviews(newPreviews);
-
-        return () => {
-            newPreviews.forEach(url => URL.revokeObjectURL(url));
+  const [formData, setFormData] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved
+      ? JSON.parse(saved)
+      : {
+          name: '',
+          description: '',
+          price: '',
+          stock: '',
+          category: '',
+          brand: ''
         };
-    }, [product.imageFiles]);
+  });
 
-    useEffect(() => {
-        const hasData = Object.values(product).some(value => (Array.isArray(value) ? value.length > 0 : value !== "" && value !== null));
-        if (hasData) {
-            try {
-                const dataToSave = { ...product };
-                delete dataToSave.imageFiles;
-                localStorage.setItem('productFormData', JSON.stringify(dataToSave));
-            } catch (err) {
-                console.error('Error saving form data:', err);
-            }
-        }
-    }, [product]);
+  // formData değiştikçe localStorage'a yaz
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+  }, [formData]);
 
-    const validateForm = () => {
-        const errors = [];
+  const [images, setImages] = useState([]);
+  const [previewImages, setPreviewImages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const [mainImageIndex, setMainImageIndex] = useState(0);
 
-        if (!product.name.trim()) {
-            errors.push("Product name is required");
-        }
+  const categories = ['Luxury Car', 'Sport Car', 'Classic Car', 'Electric Car', 'SUV', 'Sedan'];
+  const brands = [
+    'Mercedes', 'BMW', 'Maserati', 'Ferrari', 'Porsche', 'Audi', 
+    'Lamborghini', 'Bentley', 'Rolls-Royce', 'Aston Martin', 
+    'McLaren', 'Bugatti', 'Pagani', 'Koenigsegg', 'Chevrolet', 'Generic'
+  ];
 
-        if (!product.price) {
-            errors.push("Price is required");
-        } else if (isNaN(Number(product.price)) || Number(product.price) <= 0) {
-            errors.push("Price must be a positive number");
-        }
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
-        if (!product.stock) {
-            errors.push("Stock is required");
-        } else if (isNaN(Number(product.stock)) || Number(product.stock) <= 0) {
-            errors.push("Stock must be a positive number");
-        }
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setImages(prev => [...prev, ...files]);
 
-        if (errors.length > 0) {
-            setError(errors.join(", "));
-            return false;
-        }
+    // Create preview URLs
+    const newPreviews = files.map(file => ({
+      file,
+      preview: URL.createObjectURL(file)
+    }));
+    setPreviewImages(prev => [...prev, ...newPreviews]);
+  };
 
-        return true;
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
+    if (files.length === 0) return;
+    setImages(prev => [...prev, ...files]);
+    const newPreviews = files.map(file => ({ file, preview: URL.createObjectURL(file) }));
+    setPreviewImages(prev => [...prev, ...newPreviews]);
+  };
+
+  const handleDragOver = (e) => { e.preventDefault(); };
+
+  const removeImage = (index) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setPreviewImages(prev => {
+      const removed = prev[index];
+      if (removed && removed.preview) {
+        URL.revokeObjectURL(removed.preview);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+    
+    // Adjust main image index
+    if (mainImageIndex === index) {
+      setMainImageIndex(0);
+    } else if (mainImageIndex > index) {
+      setMainImageIndex(mainImageIndex - 1);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const formDataToSend = new FormData();
+      Object.keys(formData).forEach(key => {
+        formDataToSend.append(key, formData[key]);
+      });
+
+      images.forEach(image => {
+        formDataToSend.append('images', image);
+      });
+
+      await axios.post(`${process.env.REACT_APP_API_URL}/products`, formDataToSend, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // Başarılı submit sonrası localStorage temizle
+      localStorage.removeItem(STORAGE_KEY);
+
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/products');
+      }, 2000);
+    } catch (err) {
+      console.error('Error adding product:', err);
+      setError(err.response?.data?.message || 'Failed to add product. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    navigate('/products');
+  };
+
+  // Formu temizle
+  const handleClear = () => {
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      stock: '',
+      category: '',
+      brand: ''
+    });
+    setImages([]);
+    setPreviewImages([]);
+    setMainImageIndex(0);
+  };
+
+  const formFields = [
+    { name: 'name', type: 'text', label: 'Product Name', placeholder: 'Enter product name', required: true },
+    { name: 'description', type: 'textarea', label: 'Description', placeholder: 'Enter product description', rows: 4, required: true },
+    { name: 'price', type: 'number', label: 'Price ($)', placeholder: '0.00', step: '0.01', min: '0', required: true },
+    { name: 'stock', type: 'number', label: 'Stock', placeholder: '0', min: '0', required: true },
+    { name: 'category', type: 'select', label: 'Category', required: true, options: categories },
+    { name: 'brand', type: 'select', label: 'Brand', required: true, options: brands }
+  ];
+
+  const renderFormField = (field) => {
+    const commonProps = {
+      id: field.name,
+      name: field.name,
+      value: formData[field.name],
+      onChange: handleInputChange,
+      className: field.type === 'textarea' ? 'form-textarea' : field.type === 'select' ? 'form-select' : 'form-input',
+      placeholder: field.placeholder,
+      required: field.required
     };
 
-    const handleChange = (e) => {
-        const { name, value, files } = e.target;
-        
-        if (name === "imageFiles") {
-            setProduct(prev => ({
-                ...prev,
-                imageFiles: Array.from(files || [])
-            }));
-            return;
-        }
+    switch (field.type) {
+      case 'textarea':
+        return <textarea {...commonProps} rows={field.rows} />;
+      case 'select':
+        return (
+          <select {...commonProps}>
+            <option value="">Select a category</option>
+            {field.options.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        );
+      default:
+        return <input type={field.type} {...commonProps} step={field.step} min={field.min} />;
+    }
+  };
 
-        if (name === "price" || name === "stock") {
-            if (value === "") {
-                setProduct(prev => ({ ...prev, [name]: "" }));
-                return;
-            }
-
-            let numValue = value.replace(/[^0-9.]/g, '');
-
-            if (name === "price") {
-                if ((numValue.match(/\./g) || []).length > 1) {
-                    return;
-                }
-                if (numValue === "." || (numValue.startsWith("0") && numValue.length > 1 && numValue[1] !== ".")) {
-                    numValue = numValue.substring(1);
-                } else if (numValue.startsWith("0") && numValue.length > 1 && !numValue.includes('.')) {
-                    numValue = String(Number(numValue));
-                }
-            } else if (name === "stock") {
-                if (numValue.includes('.') || (numValue.startsWith("0") && numValue.length > 1)) {
-                    numValue = numValue.replace('.', '');
-                    if (numValue.startsWith("0") && numValue.length > 1) {
-                        numValue = numValue.substring(1);
-                    }
-                }
-            }
-            
-            setProduct(prev => ({
-                ...prev,
-                [name]: numValue
-            }));
-        } else if (name === "imageUrl") {
-            return;
-        } else {
-            setProduct(prev => ({
-                ...prev,
-                [name]: value
-            }));
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (isSubmitting) return;
-
-        setError("");
-        setSuccessMessage("");
-        setIsSubmitting(true);
-
-        if (!validateForm()) {
-            setIsSubmitting(false);
-            return;
-        }
-
-        if (!product.imageFiles || product.imageFiles.length === 0) {
-            setError("En az bir fotoğraf yüklemelisiniz.");
-            setIsSubmitting(false);
-            return;
-        }
-
-        try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                throw new Error("Authentication token not found");
-            }
-
-            const formData = new FormData();
-            formData.append("name", product.name);
-            formData.append("description", product.description);
-            formData.append("price", Number(product.price));
-            formData.append("stock", Number(product.stock));
-            formData.append("category", product.category);
-
-            if (product.imageFiles && product.imageFiles.length > 0) {
-                product.imageFiles.forEach(file => {
-                    formData.append("images", file);
-                });
-            }
-
-            await axios.post(`${process.env.REACT_APP_API_URL}/products`, formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            setSuccessMessage("Product added successfully!");
-            setProduct(INITIAL_FORM_STATE);
-            setImagePreviews([]);
-            localStorage.removeItem('productFormData');
-        } catch (err) {
-            console.error('Error adding product:', err);
-            setError(err.response?.data?.error || "Error adding product. Please try again.");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const clearForm = () => {
-        setProduct(INITIAL_FORM_STATE);
-        setImagePreviews([]);
-        localStorage.removeItem('productFormData');
-        setError("");
-        setSuccessMessage("");
-    };
-
-    return (
-        <div className="add-product-container">
-            <h2 className="add-product-title">Add New Product</h2>
-            <form className="add-product-form" onSubmit={handleSubmit}>
-                <input 
-                    className="add-product-input" 
-                    type="text" 
-                    name="name" 
-                    placeholder="Product Name" 
-                    value={product.name} 
-                    onChange={handleChange} 
-                    required
-                />
-                <textarea 
-                    className="add-product-textarea" 
-                    name="description" 
-                    placeholder="Description" 
-                    value={product.description} 
-                    onChange={handleChange} 
-                />
-                <input 
-                    className="add-product-input" 
-                    type="text" 
-                    name="price" 
-                    placeholder="Price" 
-                    value={product.price} 
-                    onChange={handleChange} 
-                    required
-                />
-                <input 
-                    className="add-product-input" 
-                    type="text" 
-                    name="stock" 
-                    placeholder="Stock" 
-                    value={product.stock} 
-                    onChange={handleChange} 
-                    required
-                />
-                <input 
-                    className="add-product-input" 
-                    type="text" 
-                    name="category" 
-                    placeholder="Category" 
-                    value={product.category} 
-                    onChange={handleChange} 
-                />
-                <input 
-                    className="add-product-input file-input" 
-                    type="file"
-                    name="imageFiles"
-                    accept="image/*"
-                    multiple
-                    onChange={handleChange} 
-                />
-                {imagePreviews.length > 0 && (
-                    <div className="image-previews-container">
-                        {imagePreviews.map((src, index) => (
-                            <img key={index} src={src} alt={`Product preview ${index + 1}`} className="image-preview-thumbnail" />
-                        ))}
-                    </div>
-                )}
-                <div className="form-buttons">
-                    <button 
-                        className="add-product-button" 
-                        type="submit"
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? 'Adding...' : 'Add Product'}
-                    </button>
-                    <button 
-                        className="clear-form-button" 
-                        type="button" 
-                        onClick={clearForm}
-                        disabled={isSubmitting}
-                    >
-                        Clear Form
-                    </button>
-                </div>
-                {successMessage && <p className="success-message">{successMessage}</p>}
-                {error && <p className="error-message">{error}</p>}
-            </form>
+  return (
+    <div className="page-container" ref={pageRef}>
+      <div className="add-product-mainbox">
+        <div className="add-product-header">
+          <h1 className="page-title">Add New Product</h1>
+          <p className="page-subtitle">Create a new product for your store</p>
         </div>
-    );
+        <div className="add-product-flex">
+          {/* Form Section */}
+          <form onSubmit={handleSubmit} className="add-product-form" ref={formRef}>
+            <div className="form-group name-group">
+              <label htmlFor="name" className="form-label">Product Name</label>
+              {renderFormField(formFields[0])}
+            </div>
+            <div className="form-group description-group">
+              <label htmlFor="description" className="form-label">Description</label>
+              {renderFormField(formFields[1])}
+            </div>
+            <div className="form-group images-group">
+              <label htmlFor="images" className="form-label">Product Images</label>
+              <div
+                className="file-input-wrapper"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+              >
+                <input
+                  type="file"
+                  id="images"
+                  name="images"
+                  onChange={handleImageChange}
+                  className="form-file-input"
+                  multiple
+                  accept="image/*"
+                />
+                <span className="file-input-text">Choose file or drag here</span>
+              </div>
+              {previewImages.length > 0 && (
+                <div className="selected-images-list">
+                  {previewImages.map((preview, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`selected-image-thumb${mainImageIndex === idx ? ' main-thumb' : ''}`}
+                      onClick={() => setMainImageIndex(idx)}
+                    >
+                      <img src={preview.preview} alt={`Selected ${idx + 1}`} />
+                      <button 
+                        type="button" 
+                        className="remove-thumbnail-btn" 
+                        onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="price" className="form-label">Price ($)</label>
+                {renderFormField(formFields[2])}
+              </div>
+              <div className="form-group">
+                <label htmlFor="category" className="form-label">Category</label>
+                {renderFormField(formFields[4])}
+              </div>
+              <div className="form-group">
+                <label htmlFor="brand" className="form-label">Brand</label>
+                {renderFormField(formFields[5])}
+              </div>
+              <div className="form-group">
+                <label htmlFor="stock" className="form-label">Stock</label>
+                {renderFormField(formFields[3])}
+              </div>
+            </div>
+            <div className="form-actions">
+              <button
+                type="submit"
+                className="btn btn-primary submit-btn"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <LoadingSpinner size="small" />
+                    Adding Product...
+                  </>
+                ) : (
+                  <>Add Product</>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="btn cancel-btn"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleClear}
+                className="btn clear-btn"
+                disabled={loading}
+              >
+                Clear
+              </button>
+            </div>
+            <ErrorMessage error={error} />
+            {success && (
+              <div className="success-message">
+                Product added successfully! Redirecting...
+              </div>
+            )}
+          </form>
+          {/* Preview Section */}
+          <div className="preview-section" ref={imagePreviewRef}>
+            <h3 className="preview-title">Product Preview</h3>
+            <div className="preview-content">
+              <div className="preview-image-container">
+                {previewImages.length > 0 ? (
+                  <img
+                    src={previewImages[mainImageIndex]?.preview}
+                    alt="Product preview"
+                    className="preview-main-image"
+                  />
+                ) : (
+                  <div className="preview-placeholder">
+                    <span role="img" aria-label="image">🖼️</span>
+                    <p>No images selected</p>
+                  </div>
+                )}
+              </div>
+              <div className="preview-details">
+                <h4 className="preview-name">
+                  {formData.name || 'Product Name'}
+                </h4>
+                <div className="preview-meta">
+                  <span className="preview-category">
+                    {formData.category || 'Category'}
+                  </span>
+                  <span className="preview-stock">
+                    Stock: {formData.stock || '0'}
+                  </span>
+                </div>
+                <div className="preview-price price price-lg">
+                  {formData.price ? `${formData.price}` : '0.00'}
+                </div>
+                <p className="preview-description">
+                  {formData.description || 'Product description will appear here...'}
+                </p>
+              </div>
+              {previewImages.length > 1 && (
+                <div className="preview-thumbnails">
+                  <h5>Additional Images</h5>
+                  <div className="thumbnail-grid">
+                    {previewImages.slice(1).map((preview, index) => (
+                      <div key={index} className="thumbnail-container">
+                        <img
+                          src={preview.preview}
+                          alt={`Preview ${index + 2}`}
+                          className="thumbnail-image"
+                        />
+                        <button
+                          type="button"
+                          className="remove-thumbnail-btn"
+                          onClick={() => removeImage(index + 1)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default AddProduct;

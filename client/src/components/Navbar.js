@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useBasket } from '../contexts/BasketContext';
 import { useSearch } from '../contexts/SearchContext';
+import gsap from 'gsap';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -11,139 +12,284 @@ const Navbar = () => {
     const { searchTerm, setSearchTerm, selectedCategory, setSelectedCategory } = useSearch();
     const basketCount = basket.length;
     const navigate = useNavigate();
-    const [showBasket, setShowBasket] = useState(() => {
-        const savedBasket = localStorage.getItem('basket');
-        return savedBasket ? JSON.parse(savedBasket).length > 0 : false;
-    });
-    const [basketAdded, setBasketAdded] = useState(false);
-    const [isRemoving, setIsRemoving] = useState(false);
-    const [isHovering, setIsHovering] = useState(false);
-    const prevBasketCount = useRef(basketCount);
+    const location = useLocation();
     const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
     const categories = ["All Categories", "Luxury Car", "Sport Car", "Classic Car"];
 
-    useEffect(() => {
-        if (basketCount < prevBasketCount.current) {
-            setIsRemoving(true);
-            setTimeout(() => {
-                setIsRemoving(false);
-                if (basketCount === 0) {
-                    setShowBasket(false);
-                    localStorage.removeItem('basket');
-                }
-            }, 300);
-        } else if (basketCount > prevBasketCount.current) {
-            setShowBasket(true);
-            setBasketAdded(true);
-            setTimeout(() => {
-                setBasketAdded(false);
-            }, 500);
-        }
-        prevBasketCount.current = basketCount;
-    }, [basketCount]);
+    // GSAP refs
+    const navbarRef = useRef(null);
+    const searchBarRef = useRef(null);
+    const sidebarRef = useRef(null);
 
+    // Scroll effect
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollTop = window.scrollY;
+            setIsScrolled(scrollTop > 10);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Navbar entrance animation
+    useEffect(() => {
+        if (navbarRef.current) {
+            gsap.set(navbarRef.current, { opacity: 0, y: -30 });
+            gsap.to(navbarRef.current, { 
+                opacity: 1, 
+                y: 0, 
+                duration: 0.8, 
+                ease: 'power2.out',
+                delay: 0.1
+            });
+        }
+        
+        if (searchBarRef.current) {
+            gsap.set(searchBarRef.current, { opacity: 0, scale: 0.95 });
+            gsap.to(searchBarRef.current, { 
+                opacity: 1, 
+                scale: 1, 
+                duration: 0.8, 
+                delay: 0.3, 
+                ease: 'back.out(1.7)' 
+            });
+        }
+    }, []);
+
+    // Close sidebar on route change
+    useEffect(() => {
+        setSidebarOpen(false);
+        setCategoryMenuOpen(false);
+    }, [location.pathname]);
+
+    // Close category menu on outside click
     useEffect(() => {
         if (!categoryMenuOpen) return;
+        
         const handleClick = (e) => {
-            if (!e.target.closest('.amazon-category-dropdown') && !e.target.closest('.amazon-category-menu')) {
+            if (
+              !e.target.closest('.category-dropdown-navbar') &&
+              !e.target.closest('.category-menu-navbar')
+            ) {
                 setCategoryMenuOpen(false);
             }
         };
+        
         window.addEventListener('click', handleClick, true);
         return () => window.removeEventListener('click', handleClick, true);
     }, [categoryMenuOpen]);
 
+    // Sidebar animation
+    useEffect(() => {
+        if (sidebarRef.current) {
+            if (sidebarOpen) {
+                gsap.set(sidebarRef.current, { x: -320 });
+                gsap.to(sidebarRef.current, { 
+                    x: 0, 
+                    duration: 0.4, 
+                    ease: 'power2.out' 
+                });
+            } else {
+                gsap.to(sidebarRef.current, { 
+                    x: -320, 
+                    duration: 0.3, 
+                    ease: 'power2.in' 
+                });
+            }
+        }
+    }, [sidebarOpen]);
+
+    // Kullanıcı çıkış işlemini gerçekleştirir
     const handleLogout = () => {
         logout();
         navigate("/");
     };
 
-    const handleSearch = (e) => {
-        e.preventDefault();
+    // Sidebar ve kategori menüsünü kapatır
+    const closeSidebar = () => {
+        setSidebarOpen(false);
+        setCategoryMenuOpen(false);
     };
 
+    // Sidebar menüde tıklamaların yayılmasını engeller
+    const handleMenuClick = (e) => {
+        e.stopPropagation();
+    };
+
+    // Sidebar nav-linklerini render eder
+    const renderNavLinks = () => (
+        <div className="sidebar-links">
+            {token && role === 'user' && (
+                <>
+                    <Link to="/products" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="products">🛍️</span>
+                        Products
+                    </Link>
+                    <Link to="/order" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="orders">📦</span>
+                        My Orders
+                    </Link>
+                    <Link to="/profile" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="profile">👤</span>
+                        Profile Settings
+                    </Link>
+                    <Link to="/billing" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="billing">💳</span>
+                        Billing & Plans
+                    </Link>
+                    <Link to="/support" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="support">🆘</span>
+                        Support
+                    </Link>
+                    <Link to="/notifications" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="notifications">🔔</span>
+                        Notifications
+                    </Link>
+                </>
+            )}
+            {token && role === 'admin' && (
+                <>
+                    <Link to="/products" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="products">🛍️</span>
+                        All Products
+                    </Link>
+                    <Link to="/add-product" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="add-product">➕</span>
+                        Add Product
+                    </Link>
+                    <Link to="/order" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="orders">📦</span>
+                        All Orders
+                    </Link>
+                    <Link to="/dashboard" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="dashboard">📊</span>
+                        Dashboard
+                    </Link>
+                    <Link to="/users" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="users">👥</span>
+                        User Management
+                    </Link>
+                    <Link to="/analytics" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="analytics">📈</span>
+                        Analytics
+                    </Link>
+                    <Link to="/settings" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="settings">⚙️</span>
+                        Admin Settings
+                    </Link>
+                    <Link to="/support" className="sidebar-link" onClick={handleMenuClick}>
+                        <span role="img" aria-label="support">🆘</span>
+                        Support Center
+                    </Link>
+                </>
+            )}
+        </div>
+    );
+
     return (
-        <nav className="navbar">
-            <div className='navbar-container'>
-                {token && (role === 'user' ? (<Link className='navbar-brand' to="/">Home</Link>) : null)}
-                {token && (
-                    <div className='navbar-nav'>
-                        {token && (role === 'user' ? (<Link className='nav-link' to="/products">Products</Link>) : role === 'admin' ? (<Link className='nav-link' to="/products">All Products</Link>) : null)}
-                        {token && (role === 'user' ? (<Link className='nav-link' to="/order">My Orders</Link>) : role === 'admin' ? (<Link className='nav-link' to="/order">All Orders</Link>) : null)}
-                        <form className="amazon-searchbar" onSubmit={handleSearch}>
-                            <div className="amazon-category-dropdown-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <nav className={`app-navbar ${isScrolled ? 'scrolled' : ''}`} ref={navbarRef}>
+            <div className="nav-container">
+                {/* Brand & Sidebar Trigger */}
+                <div className="nav-logo" onClick={() => setSidebarOpen(true)}>
+                    <span className="logo-icon">💼</span>
+                    <span className="logo-text">CommerceSaaS</span>
+                </div>
+
+                {/* Centered Search Bar */}
+                <div className="navbar-center" ref={searchBarRef}>
+                    {token && (
+                        <div className="search-section">
+                            <div className="category-dropdown-navbar">
                                 <button
                                     type="button"
-                                    className="amazon-category-dropdown"
-                                    onClick={e => {
-                                        e.stopPropagation();
-                                        setCategoryMenuOpen((open) => !open);
-                                    }}
-                                    aria-haspopup="listbox"
-                                    aria-expanded={categoryMenuOpen}
+                                    className="category-btn-navbar"
+                                    onClick={() => setCategoryMenuOpen(!categoryMenuOpen)}
                                 >
-                                    <span>{selectedCategory}</span>
-                                    <span className="dropdown-arrow">▼</span>
+                                    {selectedCategory}
+                                    <span className="dropdown-icon-navbar">▼</span>
                                 </button>
+                                {categoryMenuOpen && (
+                                    <ul className="category-menu-navbar">
+                                        {categories.map((cat) => (
+                                            <li
+                                                key={cat}
+                                                className={cat === selectedCategory ? "active" : ""}
+                                                onClick={() => {
+                                                    setSelectedCategory(cat);
+                                                    setCategoryMenuOpen(false);
+                                                }}
+                                            >
+                                                {cat}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
-                            {categoryMenuOpen && (
-                                <ul className="amazon-category-menu" onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: 480, width: '10%' }}>
-                                    {categories.map((cat) => (
-                                        <li
-                                            key={cat}
-                                            className={cat === selectedCategory ? "selected" : ""}
-                                            onClick={e => {
-                                                e.stopPropagation();
-                                                setSelectedCategory(cat);
-                                                setCategoryMenuOpen(false);
-                                            }}
-                                        >
-                                            {cat}
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                            <input
-                                className="amazon-search-input"
-                                type="text"
-                                placeholder="Search everything"
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                onClick={e => e.stopPropagation()}
-                            />
-                            <button className="amazon-search-btn" type="submit">
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="9" cy="9" r="7" stroke="#fff" strokeWidth="2"/>
-                                    <line x1="14.2" y1="14.2" x2="18" y2="18" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
-                                </svg>
-                            </button>
-                        </form>
-                    </div>
-                )}
-                <div className='navbar-nav-right'>
-                    {token && role === 'user' && (
-                        <button
-                            className={`nav-button ${showBasket ? 'animated-drop-in' : ''} ${basketAdded ? "basket-added" : ""} ${isRemoving ? "basket-removing" : ""} ${isHovering ? "basket-hovering" : ""}`}
-                            onClick={() => navigate("/basket")}
-                            onMouseEnter={() => setIsHovering(true)}
-                            onMouseLeave={() => setIsHovering(false)}
-                        >
-                            <span>
-                                Basket{basketCount > 0 ? ` (${basketCount})` : ""}
-                            </span>
-                        </button>
+                            <div className="search-input-container-navbar">
+                                <input
+                                    type="text"
+                                    className="search-input-navbar"
+                                    placeholder="Search products..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    autoComplete="off"
+                                />
+                            </div>
+                        </div>
                     )}
+                </div>
+
+                {/* Right Side: Basket & Logout */}
+                <div className="nav-actions">
                     {token && role === 'admin' && (
                         <button 
-                            className='admin-nav-button' 
-                            onClick={() => navigate("/dashboard")}
+                            className="add-product-navbar-btn" 
+                            onClick={() => navigate("/add-product")}
+                            title="Add Product"
                         >
-                           Dashboard
+                            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                <rect x="7" y="2" width="1" height="11" rx="0.5" fill="currentColor"/>
+                                <rect x="2" y="7" width="11" height="1" rx="0.5" fill="currentColor"/>
+                            </svg>
                         </button>
                     )}
-                    {token && <button className='logout-nav-button' onClick={handleLogout}>Logout</button>}
+                    {token && role === 'user' && (
+                        <button 
+                            className="basket-btn" 
+                            onClick={() => navigate("/basket")}
+                            title="Shopping Cart"
+                        >
+                            🛒
+                            {basketCount > 0 && <span className="basket-count">{basketCount}</span>}
+                        </button>
+                    )}
+                    <button 
+                        className="logout-btn" 
+                        onClick={handleLogout}
+                        title="Logout"
+                    >
+                        Logout
+                    </button>
                 </div>
             </div>
+
+            {/* Sidebar Overlay */}
+            {sidebarOpen && (
+                <div className="sidebar-overlay" onClick={closeSidebar} />
+            )}
+
+            {/* Sidebar */}
+            <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`} ref={sidebarRef}>
+                <div className="sidebar-header">
+                    <span className="logo-icon">💼</span>
+                    <span className="logo-text">CommerceSaaS</span>
+                    <button className="sidebar-close" onClick={closeSidebar}>×</button>
+                </div>
+                {renderNavLinks()}
+            </aside>
         </nav>
     );
 };

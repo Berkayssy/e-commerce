@@ -20,6 +20,11 @@ const productSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    brand: {
+        type: String,
+        trim: true,
+        default: "Generic"
+    },
     images: [String]
 },{timestamps: true});
 
