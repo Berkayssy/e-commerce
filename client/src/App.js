@@ -25,6 +25,9 @@ import ProfileSettings from './pages/ProfileSettings';
 import BillingPlans from './pages/BillingPlans';
 import Support from './pages/Support';
 import Notifications from './pages/Notifications';
+import CommunityList from './pages/CommunityList';
+import Contact from './pages/Contact';
+import AssignAdmin from './pages/AssignAdmin';
 
 // Admin Pages
 import Analytics from './pages/Analytics';
@@ -42,6 +45,8 @@ import { useAuth } from '../src/contexts/AuthContext';
 import './styles/global.css';
 
 import EditProduct from './pages/EditProduct';
+import SellerOnboarding from './components/SellerOnboarding';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 function AppContent() {
   const { token } = useAuth();
@@ -70,6 +75,9 @@ function AppContent() {
         <Route path="/billing" element={<ProtectedRoute><BillingPlans /></ProtectedRoute>} />
         <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        <Route path="/communities" element={<CommunityList />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/assign-admin" element={<ProtectedRoute><AssignAdmin /></ProtectedRoute>} />
         
         {/* Admin Routes */}
         <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
@@ -77,6 +85,7 @@ function AppContent() {
         <Route path="/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
         
         <Route path="/edit-product/:id" element={<EditProduct />} />
+        <Route path="/onboarding" element={<SellerOnboarding />} />
         
         <Route path="*" element={<Home />} />
       </Routes>
@@ -90,7 +99,9 @@ function App() {
       <BasketProvider>
         <OrderProvider>
           <SearchProvider>
-            <AppContent className="App" />
+            <ErrorBoundary>
+              <AppContent className="App" />
+            </ErrorBoundary>
           </SearchProvider>
         </OrderProvider>
       </BasketProvider>

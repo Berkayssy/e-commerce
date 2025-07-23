@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
-import ProductList from '../pages/ProductList'
-import Basket from '../components/Basket'
+import CommunityList from '../pages/CommunityList'
 import { useAuth } from '../contexts/AuthContext'
 import './Dashboard.css'
 import { fetchAdminDashboard } from '../api/api'
@@ -9,6 +8,7 @@ import useGsapFadeIn from '../components/common/useGsapFadeIn'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorMessage from '../components/common/ErrorMessage'
 import RetryButton from '../components/common/RetryButton'
+import SellerOnboarding from '../components/SellerOnboarding';
 
 export default function Dashboard() {
   const { token, role } = useAuth();
@@ -100,7 +100,21 @@ export default function Dashboard() {
       <div className="dashboard-page" ref={pageRef}>
         <div className="dashboard-container">
           <div className="dashboard-header" ref={headerRef}>
-            <h1>Admin Dashboard</h1>
+            <h1
+              className="dashboard-welcome-title"
+              style={{
+                fontWeight: 700,
+                fontSize: '2.1rem',
+                background: 'linear-gradient(90deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                letterSpacing: '-0.01em',
+                marginBottom: 8
+              }}
+            >
+              Welcome, {stats?.communityName}!
+            </h1>
             <p>Monitor your business performance and analytics</p>
             
             <div className="period-selector">
@@ -230,16 +244,15 @@ export default function Dashboard() {
     );
   }
 
+  if (role === "seller") {
+    return <SellerOnboarding />;
+  }
+
   // User Dashboard
   return (
     <div className="dashboard-container">
       <div className="dashboard-content">
-        <div className="product-section">
-          <ProductList />
-        </div>
-        <div className="basket-section">
-          <Basket />
-        </div>
+        <CommunityList />
       </div>
     </div>
   );

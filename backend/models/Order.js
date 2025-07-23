@@ -18,6 +18,11 @@ const OrderSchema = new mongoose.Schema({
                 default: 1,
                 min: 1,
             },
+            communityId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Community",
+                required: false // backward compatible
+            }
         },
     ],
     totalPrice: {
@@ -25,6 +30,11 @@ const OrderSchema = new mongoose.Schema({
         required: true,
         min: 0,
     },
+    communityIds: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Community",
+        required: false // backward compatible
+    }],
     contactInfo: {
         fullName: { 
             type: String, 

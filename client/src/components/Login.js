@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { googleLogin } from "../api/api";
@@ -15,9 +15,15 @@ const Login = () => {
     });
 
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, token } = useAuth();
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (token) {
+            navigate('/dashboard');
+        }
+    }, [token, navigate]);
 
     const handleChange = (e) => {
         setForm({

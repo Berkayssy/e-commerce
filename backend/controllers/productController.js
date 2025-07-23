@@ -1,12 +1,33 @@
 const Product = require("../models/Product");
+const Community = require("../models/Community");
 
 exports.createProducts = async (req, res) => {
     try {
-        const { name, description, price, stock, category, brand } = req.body;
+        const { name, description, price, stock, category, brand, communityId: bodyCommunityId } = req.body;
         const imageFiles = req.files;
         const images = imageFiles && imageFiles.length > 0
             ? imageFiles.map(file => file.secure_url || file.path || file.url)
             : ["https://res.cloudinary.com/demo/image/upload/v1719240000/no-image.png"];
+
+        // Adminin bağlı olduğu communityId'yi bul
+        let communityId = bodyCommunityId;
+        if (!communityId) {
+            // Kullanıcı rootAdmin veya admins içinde mi?
+            const community = await Community.findOne({
+                $or: [
+                    { rootAdmin: req.user._id },
+                    { admins: req.user._id }
+                ]
+            });
+            if (!community) {
+                return res.status(403).json({ error: "Bu kullanıcıya ait bir community bulunamadı" });
+            }
+            communityId = community._id;
+        }
+        // Ek zorunlu kontrol
+        if (!communityId) {
+            return res.status(400).json({ error: "communityId is required" });
+        }
 
         const newProduct = new Product({
             name,
@@ -15,7 +36,8 @@ exports.createProducts = async (req, res) => {
             stock,
             category,
             brand,
-            images
+            images,
+            communityId
         });
         await newProduct.save();
 
@@ -27,8 +49,15 @@ exports.createProducts = async (req, res) => {
 
 exports.getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find(); // Find all products
-        res.status(200).json({ products });
+        const { communityId } = req.query;
+        let products = [];
+        let community = null;
+        if (communityId) {
+            products = await Product.find({ communityId });
+            community = await Community.findById(communityId);
+        }
+        // communityId yoksa boş dizi ve null community döndür
+        res.status(200).json({ products, community });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -55,6 +84,22 @@ exports.updateProduct = async (req, res) => {
         const newImages = newImageFiles.map(file => file.secure_url || file.path);
         const images = [...existingImages, ...newImages];
 
+        const product = await Product.findById(req.params.id);
+        if (!product) return res.status(404).json({ error: "Product not found" });
+
+        // Sadece ilgili community'nin admin/root admin'i güncelleyebilir
+        if (req.user && req.user.role === 'admin') {
+            const community = await Community.findOne({
+                $or: [
+                    { rootAdmin: req.user._id },
+                    { admins: req.user._id }
+                ]
+            });
+            if (!community || String(product.communityId) !== String(community._id)) {
+                return res.status(403).json({ error: "Bu ürünü güncelleme yetkiniz yok" });
+            }
+        }
+
         const updatedProduct = await Product.findByIdAndUpdate(
             req.params.id,
             { name, description, price, stock, category, brand, images },
@@ -69,11 +114,24 @@ exports.updateProduct = async (req, res) => {
 
 exports.deleteProduct = async (req, res) => {
     try {
+        const product = await Product.findById(req.params.id);
+        if (!product) return res.status(404).json({ error: "Product not found" });
+        // Sadece ilgili community'nin admin/root admin'i silebilir
+        if (req.user && req.user.role === 'admin') {
+            const community = await Community.findOne({
+                $or: [
+                    { rootAdmin: req.user._id },
+                    { admins: req.user._id }
+                ]
+            });
+            if (!community || String(product.communityId) !== String(community._id)) {
+                return res.status(403).json({ error: "Bu ürünü silme yetkiniz yok" });
+            }
+        }
         const deletedProduct = await Product.findByIdAndDelete(req.params.id);
         if (!deletedProduct) return res.status(404).json({ error: "Product not found" });
         res.status(200).json({ message: "Product deleted successfully" });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
-    
-}
+};

@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const orderController = require("../controllers/orderController");
 const verifyToken = require("../middlewares/authMiddleware");
-const verifyAdmin = require("../middlewares/verifyAdmin");
+const { verifyAdmin } = require("../middlewares/verifyAdmin");
 
 
 router.post("/", verifyToken, orderController.createOrder); // Create an order

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./ProductList.css";
 import { useBasket } from "../contexts/BasketContext";
 import Modal from 'react-modal';
@@ -8,6 +8,8 @@ import { useSearch } from '../contexts/SearchContext';
 import useGsapFadeIn from '../components/common/useGsapFadeIn';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
+import { getProductsByCommunity } from '../api/api';
+import { useAuth } from '../contexts/AuthContext';
 
 // Ensure that react-modal is properly configured
 // If you already have it in index.js or App.js, you can remove it from here.
@@ -29,22 +31,56 @@ const ProductList = () => {
   const [showFilters, setShowFilters] = useState(false);
 
   const isAdmin = localStorage.getItem("role") === "admin";
+  const isUser = localStorage.getItem("role") === "user";
   const { basket } = useBasket();
   const effectiveBasket = isAdmin ? [] : basket;
   const { searchTerm, selectedCategory } = useSearch();
   const navigate = useNavigate();
   const pageRef = useRef(null);
+  const location = useLocation();
+  const { token } = useAuth();
+  const [communityOwnerId, setCommunityOwnerId] = useState(null);
+  const [communityName, setCommunityName] = useState('');
+  const [communityLogo, setCommunityLogo] = useState(null);
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    let communityId = params.get('communityId');
+    const role = localStorage.getItem('role');
+    const sellerCommunityId = localStorage.getItem('sellerCommunityId');
+    if (!communityId) {
+      if (role === 'seller' && sellerCommunityId) {
+        navigate(`/products?communityId=${sellerCommunityId}`);
+        return;
+      } else {
+        navigate('/communities');
+        return;
+      }
+    }
     const fetchProducts = async () => {
       try {
         setError(null);
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/products`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
+        setLoading(true);
+        let productsData;
+        if (communityId) {
+          // Community bilgisi de çek
+          const res = await getProductsByCommunity(communityId);
+          productsData = res.products;
+          // Ek: community owner bilgisini de al
+          if (res.community) {
+            setCommunityOwnerId(res.community.owner);
+            setCommunityName(res.community.name || 'Your Store');
+            setCommunityLogo(res.community.logoUrl || null);
+          }
+        } else {
+          const res = await axios.get(`${process.env.REACT_APP_API_URL}/products`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          });
+          productsData = res.data.products;
+        }
         
         // Extract brand from product names and update products
-        const productsWithBrands = res.data.products.map(product => {
+        const productsWithBrands = productsData.map(product => {
           const name = product.name || '';
           let brand = 'Generic';
           
@@ -91,7 +127,6 @@ const ProductList = () => {
         
         setProducts(productsWithBrands);
       } catch (err) {
-        console.error("Error fetching products:", err);
         setError("Failed to load products. Please try again later.");
       } finally {
         setLoading(false);
@@ -99,7 +134,7 @@ const ProductList = () => {
     };
 
     fetchProducts();
-  }, []);
+  }, [location.search, navigate]);
 
   // GSAP animations
   useGsapFadeIn(pageRef, { 
@@ -117,7 +152,6 @@ const ProductList = () => {
       setProducts(products.filter((p) => p._id !== id));
       setDeleteConfirmId(null);
     } catch (err) {
-      console.error("Error deleting product:", err);
       setError("Failed to delete product. Please try again.");
       setDeleteConfirmId(null);
     }
@@ -185,6 +219,88 @@ const ProductList = () => {
     setStockFilter('All');
   };
 
+  // Kullanıcı mağaza sahibi mi?
+  let isStoreOwner = false;
+  try {
+    if (communityOwnerId && token) {
+      const userId = JSON.parse(atob(token.split('.')[1])).id;
+      isStoreOwner = communityOwnerId === userId;
+    }
+  } catch (e) {}
+
+  if (!loading && products.length === 0 && isStoreOwner) {
+    return (
+      <div className="onboarding-welcome" style={{
+        textAlign: 'center',
+        marginTop: 60,
+        background: 'rgba(20,22,40,0.92)',
+        borderRadius: 18,
+        boxShadow: '0 6px 32px #818cf822, 0 1.5px 0 #c084fc33',
+        padding: '44px 28px 36px 28px',
+        maxWidth: 480,
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        border: '2.5px solid',
+        borderImage: 'linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%) 1',
+        position: 'relative',
+      }}>
+        <div style={{marginBottom: 18, display: 'flex', justifyContent: 'center'}}>
+          {communityLogo ? (
+            <img src={communityLogo} alt="Store Logo" style={{width: 54, height: 54, borderRadius: 12, boxShadow: '0 2px 12px #c084fc33', objectFit: 'cover', background: '#fff'}} />
+          ) : (
+            <svg viewBox="0 0 32 32" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="diamondWelcome" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#f7c873" />
+                  <stop offset="0.5" stopColor="#c084fc" />
+                  <stop offset="1" stopColor="#818cf8" />
+                </linearGradient>
+              </defs>
+              <polygon points="16,4 28,12 16,28 4,12" fill="url(#diamondWelcome)" stroke="#fff" strokeWidth="1.2" />
+              <polygon points="16,8 24,13 16,24 8,13" fill="#fff" fillOpacity="0.18" />
+            </svg>
+          )}
+        </div>
+        <h2 style={{
+          fontWeight: 900,
+          fontSize: '2.25rem',
+          background: 'linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          letterSpacing: '-0.01em',
+          marginBottom: 10,
+          textShadow: '0 2px 16px #c084fc22, 0 1px 0 #fff2',
+        }}>Welcome, {communityName}!</h2>
+        <p style={{
+          color: '#cbd5e1',
+          fontSize: '1.13rem',
+          marginBottom: 28,
+          fontWeight: 500,
+          letterSpacing: '-0.01em',
+          textShadow: '0 1px 0 #fff1',
+        }}>
+          Your store is ready. Add your first product now to start selling.
+        </p>
+        <button className="luxury-btn" style={{
+          marginTop: 8,
+          padding: '12px 32px',
+          fontSize: 18,
+          boxShadow: '0 0 16px 2px #c084fc44, 0 2px 12px #818cf822',
+          borderRadius: 10,
+          border: 'none',
+          fontWeight: 700,
+          letterSpacing: '-0.01em',
+          background: 'linear-gradient(90deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)',
+          color: '#fff',
+          transition: 'box-shadow 0.18s',
+        }} onClick={() => navigate(`/add-product?communityId=${new URLSearchParams(location.search).get('communityId')}`)}>
+          Add Your First Product
+        </button>
+      </div>
+    );
+  }
+
   if (loading) {
     return <LoadingSpinner message="Loading products..." />;
   }
@@ -200,7 +316,7 @@ const ProductList = () => {
   return (
     <div className="product-list-page" ref={pageRef}>
       {/* Filter Toggle Button for Mobile */}
-      {!isAdmin && (
+      {isUser && (
         <div className="filter-toggle-container">
           <button 
             className="filter-toggle-btn"
@@ -214,84 +330,25 @@ const ProductList = () => {
 
       <div className="product-list-container">
         {/* Filters Sidebar (only for users) */}
-        {!isAdmin && (
-          <div className={`filters-sidebar${showFilters ? ' show' : ''}`}>
-            <div className="filters-header">
-              <h3>Filters</h3>
-              <button className="clear-filters-btn" onClick={clearFilters}>
-                Clear All
-              </button>
-            </div>
-
-            {/* Price Range Filter */}
-            <div className="filter-section">
-              <h4>Price Range</h4>
-              <div className="price-range-container">
-                <div className="price-input-group">
-                  <label>Min: ${priceRange.min.toLocaleString('en-US')}</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1000000"
-                    step="10000"
-                    value={priceRange.min}
-                    onChange={(e) => setPriceRange(prev => ({ ...prev, min: parseInt(e.target.value) }))}
-                    className="price-slider"
-                  />
-                </div>
-                <div className="price-input-group">
-                  <label>Max: ${priceRange.max.toLocaleString('en-US')}</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1000000"
-                    step="10000"
-                    value={priceRange.max}
-                    onChange={(e) => setPriceRange(prev => ({ ...prev, max: parseInt(e.target.value) }))}
-                    className="price-slider"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Brand Filter */}
-            <div className="filter-section">
-              <h4>Brand</h4>
-              <select 
-                value={selectedBrand} 
-                onChange={(e) => setSelectedBrand(e.target.value)}
-                className="filter-select"
-              >
-                {uniqueBrands.map(brand => (
-                  <option key={brand} value={brand}>{brand}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Stock Filter */}
-            <div className="filter-section">
-              <h4>Stock Status</h4>
-              <div className="stock-filter-options">
-                {['All', 'In Stock', 'Out of Stock'].map(status => (
-                  <label key={status} className="stock-filter-option">
-                    <input
-                      type="radio"
-                      name="stockFilter"
-                      value={status}
-                      checked={stockFilter === status}
-                      onChange={(e) => setStockFilter(e.target.value)}
-                    />
-                    <span className="radio-custom"></span>
-                    {status}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Results Count */}
-            <div className="results-count">
-              {filteredProducts.length} of {products.length} products
-            </div>
+        {isUser && (
+          <div className="filters-sidebar" style={{alignItems: 'center', textAlign: 'center', gap: 18}}>
+            {/* Mağaza adı ve logo en üstte */}
+            {communityLogo ? (
+              <img src={communityLogo} alt="Store Logo" style={{width: 54, height: 54, borderRadius: 12, boxShadow: '0 2px 12px #c084fc33', objectFit: 'cover', background: '#fff', marginBottom: 8, marginTop: 2}} />
+            ) : (
+              <svg viewBox="0 0 32 32" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginBottom: 8, marginTop: 2}}>
+                <defs>
+                  <linearGradient id="diamondSidebar" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#f7c873" />
+                    <stop offset="0.5" stopColor="#c084fc" />
+                    <stop offset="1" stopColor="#818cf8" />
+                  </linearGradient>
+                </defs>
+                <polygon points="16,4 28,12 16,28 4,12" fill="url(#diamondSidebar)" stroke="#fff" strokeWidth="1.2" />
+                <polygon points="16,8 24,13 16,24 8,13" fill="#fff" fillOpacity="0.18" />
+              </svg>
+            )}
+            <div style={{fontWeight: 900, fontSize: '1.18rem', background: 'linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', letterSpacing: '-0.01em', marginBottom: 8}}>{communityName || 'Your Store'}</div>
           </div>
         )}
 

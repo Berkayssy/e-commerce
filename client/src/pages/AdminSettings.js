@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import './AdminSettings.css';
+import { getCommunities, createCommunity, addAdminToCommunity, removeAdminFromCommunity } from '../api/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminSettings = () => {
   const pageRef = useRef(null);
@@ -27,6 +29,64 @@ const AdminSettings = () => {
     metaTitle: 'CommerceSaaS - Modern E-commerce',
     metaDescription: 'Best e-commerce platform for modern businesses'
   });
+
+  // Community management state
+  const [communities, setCommunities] = useState([]);
+  const [communityLoading, setCommunityLoading] = useState(false);
+  const [communityError, setCommunityError] = useState(null);
+  const [newCommunity, setNewCommunity] = useState({ name: '', transId: '' });
+  const [creating, setCreating] = useState(false);
+  const [adminOps, setAdminOps] = useState({}); // { [communityId]: { adminId: '', loading: false, error: null } }
+  const { role, token } = useAuth();
+
+  // Toplulukları yükle
+  const fetchCommunities = async () => {
+    setCommunityLoading(true);
+    setCommunityError(null);
+    try {
+      const data = await getCommunities();
+      setCommunities(data.communities || []);
+    } catch (err) {
+      setCommunityError('Topluluklar yüklenemedi.');
+    } finally {
+      setCommunityLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (activeTab === 'community') fetchCommunities();
+  }, [activeTab]);
+
+  // Topluluk oluşturma
+  const handleCreateCommunity = async (e) => {
+    e.preventDefault();
+    if (!newCommunity.name || !newCommunity.transId) return;
+    setCreating(true);
+    try {
+      await createCommunity({ name: newCommunity.name, transId: newCommunity.transId, rootAdminId: token ? JSON.parse(atob(token.split('.')[1])).id : undefined, role: 'seller' });
+      setNewCommunity({ name: '', transId: '' });
+      fetchCommunities();
+    } catch (err) {
+      alert('Topluluk oluşturulamadı: ' + (err.response?.data?.message || 'Hata'));
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // Admin ekle/çıkar işlemleri
+  const handleAdminOp = async (communityId, adminId, op) => {
+    setAdminOps(prev => ({ ...prev, [communityId]: { adminId, loading: true, error: null } }));
+    try {
+      if (op === 'add') {
+        await addAdminToCommunity({ communityId, adminId });
+      } else {
+        await removeAdminFromCommunity({ communityId, adminId });
+      }
+      fetchCommunities();
+      setAdminOps(prev => ({ ...prev, [communityId]: { adminId: '', loading: false, error: null } }));
+    } catch (err) {
+      setAdminOps(prev => ({ ...prev, [communityId]: { adminId, loading: false, error: 'İşlem başarısız' } }));
+    }
+  };
 
   useEffect(() => {
     // Page entrance animation
@@ -316,6 +376,43 @@ const AdminSettings = () => {
     </div>
   );
 
+  const renderCommunityManagement = () => (
+    <div className="settings-section">
+      <h3 className="setting-group-title">Community Management</h3>
+      {/* Topluluk oluşturma formu */}
+      {role === 'admin' && (
+        <div className="setting-group">
+          <h4>Yeni Topluluk Oluştur</h4>
+          <form onSubmit={handleCreateCommunity} style={{ display: 'flex', alignItems: 'center' }}>
+            <input type="text" placeholder="Community Name" className="setting-input" style={{ marginRight: 8 }} value={newCommunity.name} onChange={e => setNewCommunity(c => ({ ...c, name: e.target.value }))} />
+            <input type="text" placeholder="Unique transId" className="setting-input" style={{ marginRight: 8 }} value={newCommunity.transId} onChange={e => setNewCommunity(c => ({ ...c, transId: e.target.value }))} />
+            <button type="submit" className="setting-btn" disabled={creating}>{creating ? 'Oluşturuluyor...' : 'Oluştur'}</button>
+          </form>
+        </div>
+      )}
+      {/* Topluluk listesi ve admin yönetimi */}
+      <div className="setting-group">
+        <h4>Mevcut Topluluklar</h4>
+        {communityLoading ? <div>Yükleniyor...</div> : communityError ? <div>{communityError}</div> : (
+          <ul>
+            {communities.length === 0 && <li>Hiç topluluk yok.</li>}
+            {communities.map((c) => (
+              <li key={c._id} style={{ marginBottom: 12 }}>
+                <strong>{c.name}</strong> <span style={{ color: '#888' }}>({c.transId})</span>
+                <div style={{ display: 'inline-block', marginLeft: 16 }}>
+                  <input type="text" placeholder="Admin User ID" style={{ marginRight: 8 }} value={adminOps[c._id]?.adminId || ''} onChange={e => setAdminOps(prev => ({ ...prev, [c._id]: { ...prev[c._id], adminId: e.target.value } }))} />
+                  <button className="setting-btn" style={{ marginRight: 4 }} disabled={adminOps[c._id]?.loading} onClick={() => handleAdminOp(c._id, adminOps[c._id]?.adminId, 'add')}>Admin Ekle</button>
+                  <button className="setting-btn" disabled={adminOps[c._id]?.loading} onClick={() => handleAdminOp(c._id, adminOps[c._id]?.adminId, 'remove')}>Admin Çıkar</button>
+                  {adminOps[c._id]?.error && <span style={{ color: 'red', marginLeft: 8 }}>{adminOps[c._id].error}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="admin-settings-page" ref={pageRef}>
       <div className="admin-settings-container">
@@ -350,6 +447,12 @@ const AdminSettings = () => {
           >
             Analytics
           </button>
+          <button 
+            className={`tab-btn ${activeTab === 'community' ? 'active' : ''}`}
+            onClick={() => setActiveTab('community')}
+          >
+            Community Management
+          </button>
         </div>
 
         {/* Settings Content */}
@@ -358,6 +461,7 @@ const AdminSettings = () => {
           {activeTab === 'security' && renderSecuritySettings()}
           {activeTab === 'files' && renderFileSettings()}
           {activeTab === 'analytics' && renderAnalyticsSettings()}
+          {activeTab === 'community' && renderCommunityManagement()}
         </div>
 
         {/* Save Button */}

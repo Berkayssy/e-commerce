@@ -26,6 +26,20 @@
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
 }
 
+.plan-modal.wide-modal {
+  max-width: 950px;
+  min-width: 0;
+  width: 100%;
+}
+
+.responsive-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+  max-width: 850px;
+}
+
 .modal-close-btn {
   position: absolute;
   top: 1rem;
@@ -294,5 +308,16 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 0.3rem;
+  }
+} 
+
+@media (max-width: 900px) {
+  .plan-modal.wide-modal {
+    max-width: 98vw;
+    min-width: 0;
+  }
+  .responsive-grid {
+    grid-template-columns: 1fr !important;
+    max-width: 100%;
   }
 } 

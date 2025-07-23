@@ -2,6 +2,8 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require('google-auth-library');
+const Subscription = require("../models/Subscription");
+const Plan = require("../models/Plan");
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -16,7 +18,7 @@ exports.register = async (req, res) => {
             username,
             email,
             password: hashedPassword,
-            role: role || 'user' // if role is not provided, default to 'user'
+            role: role === 'seller' ? 'seller' : (role || 'user') // if role is 'seller', set as seller, else default to user
         });
         await newUser.save();
 
@@ -115,7 +117,7 @@ exports.googleLogin = async (req, res) => {
                 email: email,
                 googleId: googleId,
                 profilePicture: picture,
-                role: 'user',
+                role: req.body.role === 'seller' ? 'seller' : 'user',
                 password: 'google-auth-' + Math.random().toString(36).substring(2)
             });
             await user.save();
@@ -142,7 +144,67 @@ exports.googleLogin = async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Google login error:', err);
         res.status(500).json({ error: "Google authentication failed: " + err.message });
+    }
+};
+
+exports.registerAndSubscribe = async (req, res) => {
+    const { username, email, password, storeName, phone, country, city, address, plan, cardNumber, cardExpiry, cardCvv, role } = req.body;
+    try {
+        // Check for existing user
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: "Email already in use" });
+        }
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        // Create user
+        const newUser = new User({
+            username,
+            email,
+            password: hashedPassword,
+            role: role === 'seller' ? 'seller' : (role || 'user')
+        });
+        await newUser.save();
+        // Create JWT token
+        const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        // Validate plan
+        const planDoc = await Plan.findById(plan);
+        if (!planDoc) {
+            return res.status(400).json({ message: "Plan not found" });
+        }
+        // Create Community (store) for the seller
+        const Community = require("../models/Community");
+        const transId = `${storeName || username}-${Date.now()}`;
+        const community = new Community({
+            name: storeName || username,
+            transId,
+            owner: newUser._id,
+            rootAdmin: newUser._id,
+            admins: [],
+            role: 'seller',
+            plan: planDoc._id
+        });
+        await community.save();
+        // Create subscription with store field
+        const now = new Date();
+        const end = new Date();
+        end.setDate(now.getDate() + (planDoc.durationDays || 30));
+        const subscription = new Subscription({
+            user: newUser._id,
+            plan: planDoc._id,
+            store: community._id,
+            startDate: now,
+            endDate: end,
+            isActive: true
+        });
+        await subscription.save();
+        // Link subscription to community
+        community.subscription = subscription._id;
+        await community.save();
+        // Return token and sellerId
+        return res.status(201).json({ token, sellerId: newUser._id, planId: planDoc._id, storeId: community._id });
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
     }
 };

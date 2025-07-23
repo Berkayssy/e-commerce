@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import './PlanDetail.css';
+import { useAuth } from '../contexts/AuthContext';
 
 // Plan verilerini burada veya ayrı bir dosyada tutabilirsiniz
 const plans = [
@@ -66,6 +67,7 @@ const PlanDetail = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const contentRef = useRef(null);
+  const { token, role } = useAuth();
 
   const plan = plans.find(p => p.id === planId);
 
@@ -103,12 +105,14 @@ const PlanDetail = () => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      if (plan.id === 'starter') {
-        navigate('/register');
-      } else {
-        navigate('/dashboard');
+      if (!token) {
+        // Girişli değilse login sayfasına yönlendir, role=seller ve planId ile
+        navigate(`/login?role=seller&planId=${plan.id}`);
+        return;
       }
-    }, 2000);
+      // Girişli ise seller paneline yönlendir (ör: /dashboard veya /create-store)
+      navigate('/dashboard');
+    }, 1000);
   };
 
   return (

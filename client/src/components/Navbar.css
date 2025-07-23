@@ -1,16 +1,16 @@
 /* Modern Navbar - Consistent with Home.css */
 .app-navbar {
-  position: fixed;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(10, 15, 28, 0.95);
+  background: rgba(10, 15, 28, 0.85);
   backdrop-filter: blur(15px);
-  border-bottom: 1px solid rgba(129, 140, 248, 0.2);
-  padding: 1rem 0;
-  transition: all 0.3s ease;
-  min-height: 48px;
+  border-bottom: 1px solid rgba(129, 140, 248, 0.13);
+  padding: 0.5rem 0;
+  transition: background-color 0.2s;
+  min-height: unset;
 }
 
 .app-navbar.scrolled {
@@ -22,23 +22,21 @@
 }
 
 .nav-container {
-  width: 100%;
-  padding-left: 18px;
-  padding-right: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
   display: flex;
+  justify-content: flex-end;
   align-items: center;
-  justify-content: center;
   position: relative;
-  height: 48px;
-  min-height: 48px;
+  height: unset;
+  min-height: unset;
 }
 
 /* Brand Logo - Fixed to left */
 .nav-logo {
-  position: relative;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  position: absolute;
+  left: 2rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -60,7 +58,7 @@
 
 .logo-icon {
   font-size: 1.5rem;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  filter: none;
 }
 
 .logo-text {
@@ -679,5 +677,237 @@
     width: 22px;
     height: 22px;
     font-size: 0.85rem;
+  }
+} 
+
+/* --- Redesigned Basket Button --- */
+.redesigned-basket-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+  border: none;
+  color: #fff;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  position: relative;
+  box-shadow: 0 2px 12px rgba(99,102,241,0.13);
+  transition: box-shadow 0.18s cubic-bezier(0.4,0,0.2,1), background 0.18s cubic-bezier(0.4,0,0.2,1), transform 0.18s cubic-bezier(0.4,0,0.2,1);
+}
+.redesigned-basket-btn:hover, .redesigned-basket-btn:focus {
+  background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+  box-shadow: 0 4px 18px rgba(99,102,241,0.22);
+  transform: scale(1.07);
+}
+.redesigned-basket-btn:active {
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+  box-shadow: 0 2px 8px rgba(99,102,241,0.18);
+  transform: scale(0.97);
+}
+
+.redesigned-basket-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: linear-gradient(135deg, #ef4444 0%, #f472b6 100%);
+  color: #fff;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  border: 2.5px solid #fff;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.22);
+  animation: bounceIn 0.6s cubic-bezier(0.4,0,0.2,1);
+  z-index: 2;
+}
+
+@media (max-width: 768px) {
+  .redesigned-basket-btn {
+    width: 40px;
+    height: 40px;
+  }
+  .redesigned-basket-count {
+    width: 18px;
+    height: 18px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .redesigned-basket-btn {
+    width: 34px;
+    height: 34px;
+  }
+  .redesigned-basket-count {
+    width: 15px;
+    height: 15px;
+    font-size: 0.7rem;
+  }
+} 
+
+/* --- Compact Basket Button --- */
+.compact-basket-btn {
+  width: 34px;
+  height: 34px;
+}
+.compact-basket-count {
+  width: 14px;
+  height: 14px;
+  font-size: 0.72rem;
+  top: -4px;
+  right: -4px;
+  border-width: 2px;
+}
+
+@media (max-width: 768px) {
+  .compact-basket-btn {
+    width: 28px;
+    height: 28px;
+  }
+  .compact-basket-count {
+    width: 11px;
+    height: 11px;
+    font-size: 0.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .compact-basket-btn {
+    width: 24px;
+    height: 24px;
+  }
+  .compact-basket-count {
+    width: 9px;
+    height: 9px;
+    font-size: 0.5rem;
+  }
+} 
+
+/* --- Minimal Basket Button --- */
+.minimal-basket-btn {
+  width: 24px;
+  height: 24px;
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  box-shadow: none;
+  transition: background 0.18s, border-color 0.18s, transform 0.15s;
+}
+.minimal-basket-btn:hover, .minimal-basket-btn:focus {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  transform: scale(1.05);
+}
+.minimal-basket-btn:active {
+  background: rgba(239, 68, 68, 0.13);
+  border-color: rgba(239, 68, 68, 0.22);
+  color: #ef4444;
+  transform: scale(0.97);
+}
+
+.minimal-basket-count {
+  width: 10px;
+  height: 10px;
+  font-size: 0.48rem;
+  top: -3px;
+  right: -3px;
+  border-width: 1.5px;
+  background: #ef4444;
+  color: #fff;
+  border: 1.5px solid #fff;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.13);
+}
+
+@media (max-width: 480px) {
+  .minimal-basket-btn {
+    width: 18px;
+    height: 18px;
+  }
+  .minimal-basket-count {
+    width: 7px;
+    height: 7px;
+    font-size: 0.36rem;
+  }
+} 
+
+/* --- Purple Minimal Basket Button --- */
+.purple-basket-btn {
+  width: 24px;
+  height: 24px;
+  background: rgba(99, 102, 241, 0.13);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  color: #6366f1;
+  box-shadow: none;
+  transition: background 0.18s, border-color 0.18s, transform 0.15s;
+}
+.purple-basket-btn:hover, .purple-basket-btn:focus {
+  background: rgba(129, 140, 248, 0.18);
+  border-color: rgba(129, 140, 248, 0.3);
+  color: #6366f1;
+  transform: scale(1.05);
+}
+.purple-basket-btn:active {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(99, 102, 241, 0.22);
+  color: #6366f1;
+  transform: scale(0.97);
+}
+
+.purple-basket-count {
+  width: 10px;
+  height: 10px;
+  font-size: 0.48rem;
+  top: -3px;
+  right: -3px;
+  border-width: 1.5px;
+  background: #6366f1;
+  color: #fff;
+  border: 1.5px solid #fff;
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.13);
+}
+
+@media (max-width: 480px) {
+  .purple-basket-btn {
+    width: 18px;
+    height: 18px;
+  }
+  .purple-basket-count {
+    width: 7px;
+    height: 7px;
+    font-size: 0.36rem;
+  }
+} 
+
+/* --- Logout Size Basket Button --- */
+.logout-size-basket-btn {
+  width: 32px;
+  height: 32px;
+}
+.logout-size-basket-count {
+  width: 13px;
+  height: 13px;
+  font-size: 0.7rem;
+  top: -4px;
+  right: -4px;
+  border-width: 2px;
+}
+
+@media (max-width: 480px) {
+  .logout-size-basket-btn {
+    width: 24px;
+    height: 24px;
+  }
+  .logout-size-basket-count {
+    width: 9px;
+    height: 9px;
+    font-size: 0.5rem;
   }
 } 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import './PlanSelection.css';
+import PlanModal from '../components/PlanModal';
 
 const FAQS = [
   {
@@ -26,10 +27,46 @@ const FAQS = [
   }
 ];
 
+// Planlara frontend'de görsel ve metinsel özellikleri ekle
+const enrichPlan = (plan) => {
+  // Eşleme tablosu
+  const planMeta = {
+    Starter: {
+      icon: '🚀',
+      color: '#818cf8',
+      period: 'First 3 months free, then $99/mo',
+      popular: false
+    },
+    Pro: {
+      icon: '📈',
+      color: '#c084fc',
+      period: 'per month',
+      popular: true
+    },
+    Enterprise: {
+      icon: '🏢',
+      color: '#f472b6',
+      period: 'per month',
+      popular: false
+    },
+    Ultimate: {
+      icon: '👑',
+      color: '#fbbf24',
+      period: 'per month',
+      popular: false
+    }
+  };
+  const meta = planMeta[plan.name] || {};
+  return { ...plan, ...meta };
+};
+
 const PlanSelection = () => {
+  const [plans, setPlans] = useState([]);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [modalPlan, setModalPlan] = useState(null);
+  const [showAllPlans, setShowAllPlans] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -37,6 +74,26 @@ const PlanSelection = () => {
   const subtitleRef = useRef(null);
   const plansRef = useRef(null);
   const plansGridRef = useRef(null);
+
+  useEffect(() => {
+    // Planları API'den çek
+    const fetchPlans = async () => {
+      try {
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/plans`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setPlans(data);
+        } else if (Array.isArray(data.plans)) {
+          setPlans(data.plans);
+        } else {
+          setPlans([]);
+        }
+      } catch (err) {
+        setPlans([]);
+      }
+    };
+    fetchPlans();
+  }, []);
 
   useEffect(() => {
     // URL'den plan bilgisini al
@@ -89,81 +146,12 @@ const PlanSelection = () => {
     return () => window.removeEventListener('resize', setEqualCardHeights);
   }, []);
 
-  const plans = [
-    {
-      id: 'starter',
-      name: 'Starter',
-      price: 0,
-      period: 'Free forever',
-      description: 'Perfect for small automotive businesses just getting started',
-      features: [
-        'Up to 10 products',
-        'Basic analytics dashboard',
-        'Community support',
-        'Standard gallery themes',
-        'Mobile responsive design',
-        'SSL certificate included',
-        'Basic SEO tools',
-        'Email notifications'
-      ],
-      popular: false,
-      color: '#818cf8',
-      icon: '🚀'
-    },
-    {
-      id: 'growth',
-      name: 'Growth',
-      price: 99,
-      period: 'per month',
-      description: 'Ideal for growing automotive businesses with more needs',
-      features: [
-        'Unlimited products',
-        'Advanced analytics & insights',
-        'Priority email & chat support',
-        'Custom branding & themes',
-        'Priority updates & features',
-        'API access & webhooks',
-        'Advanced SEO optimization',
-        'Multi-language support',
-        'Advanced inventory management',
-        'Customer reviews & ratings'
-      ],
-      popular: true,
-      color: '#c084fc',
-      icon: '📈'
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: 249,
-      period: 'per month',
-      description: 'For large automotive businesses with complex requirements',
-      features: [
-        'All Growth features included',
-        '24/7 priority phone support',
-        'Custom domain & branding',
-        'Dedicated account manager',
-        'Advanced API & integrations',
-        'White-label solution',
-        'Advanced security features',
-        'Custom integrations',
-        'SLA guarantee (99.9%)',
-        'Training & onboarding sessions',
-        'Advanced reporting suite',
-        'Multi-location support'
-      ],
-      popular: false,
-      color: '#f472b6',
-      icon: '🏢'
-    }
-  ];
-
   const handlePlanSelect = async (plan) => {
     setIsLoading(true);
     try {
-      // Simulate loading for better UX
+      localStorage.setItem('selectedPlanId', plan._id); // Artık gerçek MongoDB id
       await new Promise(resolve => setTimeout(resolve, 300));
-      navigate(`/plans/${plan.id}`);
+      navigate(`/plans/${plan._id}`);
     } catch (error) {
       console.error('Navigation error:', error);
     } finally {
@@ -173,7 +161,7 @@ const PlanSelection = () => {
 
   const handleButtonClick = (e, plan) => {
     e.stopPropagation();
-    handlePlanSelect(plan);
+    setModalPlan(plan);
   };
 
   // FAQ toggle
@@ -210,63 +198,95 @@ const PlanSelection = () => {
             <rect x="900" y="200" width="200" height="20" rx="10" fill="#f472b6" opacity="0.07" />
           </svg>
           
-          <div ref={plansGridRef} className="plans-grid">
-            {plans.map((plan) => (
-              <div 
-                key={plan.id}
-                className={`plan-card ${plan.popular ? 'popular' : ''} ${selectedPlan === plan.id ? 'selected' : ''}`}
-                onClick={() => handlePlanSelect(plan)}
-                style={{ borderTop: `4px solid ${plan.color}` }}
-              >
-                {plan.popular && (
-                  <div className="popular-badge">Most Popular</div>
-                )}
-                
-                <div className="plan-header-section">
-                  <div className="plan-icon" style={{ color: plan.color, fontSize: 32, marginBottom: 4 }}>
-                    {plan.icon}
-                  </div>
-                  <div className="plan-title-row">
-                    <h3 className="plan-name">{plan.name}</h3>
-                    {plan.id === 'starter' && (
-                      <span className="free-badge-inline">Free</span>
-                    )}
-                  </div>
-                  <div className="plan-price-row">
-                    <span className="plan-price-main" style={{ color: plan.color }}>
-                      {plan.price === 0 ? 'Free' : `$${plan.price}`}
-                    </span>
-                    <span className="plan-price-period">{plan.period}</span>
-                  </div>
-                  <p className="plan-description">{plan.description}</p>
-                </div>
-                
-                <div className="plan-features">
-                  {plan.features.map((feature, index) => (
-                    <div key={index} className="feature-item">
-                      <span className="feature-icon" style={{ color: '#10b981' }}>✓</span>
-                      <span className="feature-text">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="plan-divider"></div>
-                
-                <button 
-                  className={`plan-select-btn ${plan.popular ? 'popular' : ''} ${isLoading ? 'loading' : ''}`}
-                  style={{ '--plan-color': plan.color }}
-                  onClick={(e) => handleButtonClick(e, plan)}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <span className="loading-spinner"></span>
-                  ) : (
-                    plan.id === 'starter' ? 'Get Started Free' : `Choose ${plan.name}`
+          <div ref={plansGridRef} className="plans-grid" style={{
+            display: showAllPlans ? 'grid' : 'flex',
+            gridTemplateColumns: showAllPlans ? 'repeat(3, 1fr)' : undefined,
+            flexDirection: showAllPlans ? undefined : 'column',
+            gap: '2rem',
+            justifyItems: 'center',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '400px',
+            width: '100%',
+            maxWidth: showAllPlans ? '900px' : '400px',
+            margin: '0 auto'
+          }}>
+            {/* Main plans */}
+            {Array.isArray(plans) && plans
+              .filter(plan => showAllPlans ? plan.name !== 'Starter' : plan.name === 'Starter')
+              .map((plan, idx, arr) => {
+                let enriched = enrichPlan(plan);
+                // Ortadaki kartı most popular yap
+                if (showAllPlans && idx === 1 && arr.length === 3) {
+                  enriched = { ...enriched, popular: true };
+                } else {
+                  enriched = { ...enriched, popular: false };
+                }
+                return (
+                  <div 
+                    key={enriched._id}
+                    className={`plan-card ${enriched.popular ? 'popular' : ''} ${selectedPlan === enriched._id ? 'selected' : ''}`}
+                    style={{ borderTop: `4px solid ${enriched.color || '#818cf8'}` }}
+                  >
+                  {enriched.popular && (
+                    <div className="popular-badge">Most Popular</div>
                   )}
-                </button>
-              </div>
-            ))}
+                  <div className="plan-header-section">
+                    <div className="plan-icon" style={{ color: enriched.color || '#818cf8', fontSize: 32, marginBottom: 4 }}>
+                      {enriched.icon || '💼'}
+                    </div>
+                    <div className="plan-title-row">
+                      <h3 className="plan-name">{enriched.name}</h3>
+                      {enriched.price === 0 && (
+                        <span className="free-badge-inline">Free</span>
+                      )}
+                    </div>
+                    <div className="plan-price-row">
+                      <span className="plan-price-main" style={{ color: enriched.color || '#818cf8' }}>
+                        {enriched.price === 0 ? 'Free' : `$${enriched.price}`}
+                      </span>
+                      <span className="plan-price-period">{enriched.period || (enriched.durationDays ? `${enriched.durationDays} days` : '')}</span>
+                    </div>
+                    <p className="plan-description">{enriched.description}</p>
+                  </div>
+                  <div className="plan-features">
+                    {enriched.features && enriched.features.map((feature, index) => (
+                      <div key={index} className="feature-item">
+                        <span className="feature-icon" style={{ color: '#10b981' }}>✓</span>
+                        <span className="feature-text">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="plan-divider"></div>
+                  <button 
+                    className={`plan-select-btn ${enriched.popular ? 'popular' : ''} ${isLoading ? 'loading' : ''}`}
+                    style={{ '--plan-color': enriched.color || '#818cf8' }}
+                    onClick={(e) => { e.stopPropagation(); setModalPlan(enriched); }}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <span className="loading-spinner"></span>
+                    ) : (
+                      enriched.price === 0 ? 'Get Started Free' : `Choose ${enriched.name}`
+                    )}
+                  </button>
+                </div>
+              );
+            })}
           </div>
+          {/* Ok ile toggle */}
+          {!showAllPlans && (
+            <div style={{ textAlign: 'center', marginTop: '2rem', cursor: 'pointer', fontSize: '2rem' }} onClick={() => setShowAllPlans(true)}>
+              <span title="Diğer planları görüntüle">→</span>
+            </div>
+          )}
+          {showAllPlans && (
+            <div style={{ textAlign: 'center', marginTop: '2rem', cursor: 'pointer', fontSize: '2rem' }} onClick={() => setShowAllPlans(false)}>
+              <span title="Starter planını göster">←</span>
+            </div>
+          )}
+          {/* Ultimate plan, ayrı ve ortalanmış */}
+          {/* ... ultimatePlan kodu kaldırıldı, çünkü artık plans API'den geliyor ... */}
         </div>
 
         {/* FAQ Section - Accordion */}
@@ -299,6 +319,15 @@ const PlanSelection = () => {
             ))}
           </div>
         </div>
+        {/* Plan Modal */}
+        {modalPlan && (
+          <PlanModal 
+            plan={modalPlan} 
+            onClose={() => setModalPlan(null)} 
+            onConfirm={() => {}} 
+            isLoading={false} 
+          />
+        )}
       </div>
     </div>
   );

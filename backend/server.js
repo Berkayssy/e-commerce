@@ -36,4 +36,10 @@ app.use(cors({
 
 // app.use('/api/admin', adminRoutes); // Remove this line
 
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('GLOBAL ERROR:', err);
+  res.status(500).json({ error: err.message || 'Internal Server Error' });
+});
+
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

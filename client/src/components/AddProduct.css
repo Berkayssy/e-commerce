@@ -13,7 +13,7 @@
 
 .add-product-mainbox {
   width: 100vw;
-  max-width: none;
+  max-width: 1200px;
   background: #0a0f1c;
   border-radius: 0;
   padding: 0;
@@ -21,6 +21,7 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  margin: 0 auto;
 }
 
 .add-product-header {
@@ -29,24 +30,35 @@
 }
 
 .add-product-flex {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  align-items: stretch;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
   width: 100vw;
-  min-height: 70vh;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
+  gap: 48px;
+  /* Preview solda, form sağda */
 }
 
+/* Preview Card hizalaması */
+.preview-content {
+  margin-left: 56px;
+  max-width: 420px;
+  min-width: 340px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Form hizalaması */
 .add-product-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-  background: none;
-  border-radius: 0;
-  padding: 2rem 3vw 2rem 8vw;
-  border: none;
-  justify-content: stretch;
-  min-width: 0;
+  flex: 1;
+  min-width: 340px;
+  max-width: 700px;
+  margin-right: 72px; 
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .form-section,
@@ -268,11 +280,14 @@
 }
 
 .form-actions {
+  width: 100vw;
+  max-width: 100vw;
+  margin: 3rem auto 0 auto;
   display: flex;
-  gap: 1.2rem;
-  margin-top: 1.2rem;
-  padding-top: 1.7rem;
-  border-top: 1px solid #23263a;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  position: relative;
 }
 .submit-btn, .cancel-btn, .clear-btn {
   min-width: 140px;
@@ -327,17 +342,17 @@
 }
 
 .preview-section {
-  padding: 2rem 8vw 2rem 3vw;
+  flex: 1;
+  min-width: 340px;
+  max-width: 520px;
+  padding: 0;
+  border-radius: 0;
   background: none;
-  border: none;
   box-shadow: none;
-  min-width: 0;
-  max-width: 100%;
-  width: 100%;
-  margin: 0;
   display: flex;
   flex-direction: column;
-  justify-content: stretch;
+  align-items: center;
+  justify-content: center;
 }
 .preview-title {
   font-size: 1.15rem;
@@ -351,13 +366,15 @@
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
-  background: #101624;
-  border-radius: 12px;
-  padding: 1.7rem 2.2rem;
-  border: 1px solid #23263a;
-  box-shadow: 0 2px 12px rgba(16,22,36,0.10);
+  border-radius: 18px;
+  padding: 2.2rem 2.2rem;
+  border: 1.5px solid;
+  border-image: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%) 1;
   font-size: 1rem;
   color: #e2e8f0;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 420px;
 }
 .preview-image-container {
   width: 100%;
@@ -525,23 +542,31 @@
   border-color: #f472b6;
 }
 
-@media (max-width: 900px) {
-  .add-product-mainbox {
-    padding: 0;
-  }
+@media (max-width: 1400px) {
   .add-product-flex {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-  .add-product-form, .preview-section {
-    padding: 2rem 4vw;
+    gap: 32px;
   }
   .preview-content {
-    padding: 1.2rem 0.7rem;
+    margin-left: 24px;
   }
-  .form-row {
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+  .add-product-form {
+    margin-right: 24px;
+  }
+}
+
+@media (max-width: 900px) {
+  .add-product-flex {
+    flex-direction: column;
+    gap: 0;
+    align-items: stretch;
+  }
+  .preview-content {
+    margin-left: 0;
+    max-width: 100%;
+  }
+  .add-product-form {
+    margin-right: 0;
+    max-width: 100%;
   }
 }
 @media (max-width: 768px) {
@@ -608,5 +633,11 @@
   .form-row {
     grid-template-columns: 1fr;
     gap: 0.7rem;
+  }
+  .preview-section, .preview-content {
+    margin-left: 0.3rem;
+  }
+  .add-product-form {
+    margin-right: 0.3rem;
   }
 } 

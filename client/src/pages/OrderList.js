@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import useGsapFadeIn from '../components/common/useGsapFadeIn';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import RetryButton from '../components/common/RetryButton';
 import "./OrderList.css";
+import { getOrdersByCommunity } from '../api/api';
 
 const OrderList = () => {
   const [orders, setOrders] = useState([]);
@@ -18,8 +19,8 @@ const OrderList = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const limit = 5;
   const navigate = useNavigate();
+  const location = useLocation();
 
   // GSAP refs
   const pageRef = useRef(null);
@@ -29,6 +30,13 @@ const OrderList = () => {
   const orderCardsRef = useRef([]);
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const communityId = params.get('communityId');
+    if (!communityId) {
+      navigate('/communities');
+      return;
+    }
+
     const token = localStorage.getItem("token");
     if (!token) {
       navigate('/login');
@@ -39,17 +47,9 @@ const OrderList = () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/orders?page=${page}&limit=${limit}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (page === 1) {
-          setOrders(res.data.orders || []);
-        } else {
-          setOrders(prevOrders => [...prevOrders, ...(res.data.orders || [])]);
-        }
-        setHasMore(res.data.orders && res.data.orders.length === limit);
+        const res = await getOrdersByCommunity(communityId);
+        setOrders(res.orders || []);
+        setHasMore(false); // topluluk bazlı sayfalama yoksa false
       } catch (err) {
         console.error("Error fetching orders:", err);
         setError(err.response?.data?.error || "Failed to fetch orders");
@@ -62,7 +62,7 @@ const OrderList = () => {
     };
 
     fetchOrders();
-  }, [navigate, page, limit]);
+  }, [navigate, location.search]);
 
   // GSAP animations
   useGsapFadeIn([pageRef, headerRef, filtersRef, ordersRef], { 

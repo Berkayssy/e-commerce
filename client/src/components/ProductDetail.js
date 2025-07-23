@@ -4,6 +4,7 @@ import axios from "axios";
 import Modal from 'react-modal';
 import { useBasket } from '../contexts/BasketContext';
 import { useGsap } from '../contexts/GsapContext';
+import { useAuth } from '../contexts/AuthContext';
 import "./ProductDetail.css";
 import { FaShoppingCart, FaTrash, FaBolt, FaGasPump, FaCogs, FaRoad, FaTachometerAlt, FaCarSide, FaPalette, FaShieldAlt, FaCheckCircle, FaMoneyBillWave, FaMapMarkerAlt, FaWarehouse } from 'react-icons/fa';
 
@@ -19,6 +20,14 @@ const ProductDetail = () => {
   const { addToBasket, removeFromBasket, basket } = useBasket();
   const { productDetailRefs } = useGsap();
   const { pageRef, imageRef, contentRef, actionsRef } = productDetailRefs;
+  const { role } = useAuth();
+  // Seller'ın kendi communityId'si
+  let sellerCommunityId = null;
+  if (role === 'seller') {
+    sellerCommunityId = localStorage.getItem('sellerCommunityId');
+  }
+  // Admin veya seller için ürünün communityId'sini kullan
+  const productCommunityId = product?.communityId || sellerCommunityId;
 
   // --- Tab state and tab names in English ---
   const [activeTab, setActiveTab] = useState('features');
@@ -169,10 +178,22 @@ const ProductDetail = () => {
     <div className="page-container" ref={pageRef}>
       <div className="page-content">
         <div className="product-detail-container">
-          <Link to="/products" className="back-link btn">
-            <span role="img" aria-label="back">←</span>
-            Back to Products
-          </Link>
+          {role === 'user' ? (
+            <Link to="/communities" className="back-link btn">
+              <span role="img" aria-label="back">←</span>
+              Back to Stores
+            </Link>
+          ) : (productCommunityId ? (
+            <Link to={`/products?communityId=${productCommunityId}`} className="back-link btn">
+              <span role="img" aria-label="back">←</span>
+              Back to Products
+            </Link>
+          ) : (
+            <Link to="/products" className="back-link btn">
+              <span role="img" aria-label="back">←</span>
+              Back to Products
+            </Link>
+          ))}
           
           {/* Professional 3-Section Grid Layout */}
           <div className="product-detail-professional-grid">

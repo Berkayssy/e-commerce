@@ -57,7 +57,6 @@ body {
   color: var(--text-primary);
   transform: none !important;
   -webkit-transform: none !important;
-  padding-top: var(--navbar-height);
   line-height: 1.6;
 }
 
@@ -445,4 +444,20 @@ code {
 
 .back-link:hover {
   color: var(--accent-secondary);
+} 
+
+.page-container,
+.dashboard-page,
+.admin-settings-page,
+.support-page,
+.notifications-page,
+.privacy-page,
+.terms-page,
+.order-page-container,
+.editpage-wrapper,
+.plan-selection-page,
+.plan-detail-page,
+.product-list-page,
+.profile-container {
+  padding-top: var(--navbar-height);
 } 
