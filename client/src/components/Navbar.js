@@ -274,9 +274,9 @@ const Navbar = () => {
                     {effectiveRole === 'seller' && (
                         communityId ? (
                             <Link to={`/assign-admin?communityId=${communityId}`} className="sidebar-link" onClick={handleMenuClick}>
-                                <span role="img" aria-label="admin-assign">🛡️</span>
-                                Assign Admin
-                            </Link>
+                            <span role="img" aria-label="admin-assign">🛡️</span>
+                            Assign Admin
+                        </Link>
                         ) : (
                             <span className="sidebar-link disabled" style={{opacity: 0.5, cursor: 'not-allowed'}} title="No community selected">
                                 <span role="img" aria-label="admin-assign">🛡️</span>
