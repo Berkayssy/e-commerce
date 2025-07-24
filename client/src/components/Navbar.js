@@ -7,6 +7,12 @@ import gsap from 'gsap';
 import axios from 'axios';
 import './Navbar.css';
 
+// Fonksiyonu component DIŞINA taşı
+function getCommunityIdFromUrl(locationSearch) {
+    const params = new URLSearchParams(locationSearch);
+    return params.get('communityId');
+}
+
 const Navbar = () => {
     const { token, role, logout, user } = useAuth();
     const { basket } = useBasket();
@@ -24,17 +30,11 @@ const Navbar = () => {
     const avatarBtnRef = useRef(null);
     const avatarDropdownRef = useRef(null);
 
-    // Get communityId from URL
-    function getCommunityIdFromUrl() {
-        const params = new URLSearchParams(location.search);
-        return params.get('communityId');
-    }
-
     // Fetch store logo and name by communityId from API
     useEffect(() => {
         const fetchCommunityData = async () => {
             if (token && (role === 'seller' || role === 'admin')) {
-                const communityId = getCommunityIdFromUrl();
+                const communityId = getCommunityIdFromUrl(location.search);
                 if (!communityId) {
                     setCommunityLogo(null);
                     setCommunityName(null);
@@ -205,7 +205,7 @@ const Navbar = () => {
     }
 
     // Sidebar nav-linklerini render eder
-    const communityId = getCommunityIdFromUrl();
+    const communityId = getCommunityIdFromUrl(location.search);
     const renderNavLinks = () => (
         <div className="sidebar-links">
             {token && effectiveRole === 'user' && (

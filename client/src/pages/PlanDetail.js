@@ -67,7 +67,7 @@ const PlanDetail = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const contentRef = useRef(null);
-  const { token, role } = useAuth();
+  const { token } = useAuth();
 
   const plan = plans.find(p => p.id === planId);
 

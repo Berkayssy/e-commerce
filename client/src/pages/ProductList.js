@@ -25,9 +25,9 @@ const ProductList = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   
   // Filter states
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 1000000 });
-  const [selectedBrand, setSelectedBrand] = useState('All Brands');
-  const [stockFilter, setStockFilter] = useState('All');
+  const [priceRange] = useState({ min: 0, max: 1000000 });
+  const [selectedBrand] = useState('All Brands');
+  const [stockFilter] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
 
   const isAdmin = localStorage.getItem("role") === "admin";
@@ -179,27 +179,6 @@ const ProductList = () => {
     );
   };
 
-  // Get unique brands from products
-  const uniqueBrands = [
-    'All Brands',
-    'Mercedes',
-    'BMW',
-    'Maserati',
-    'Ferrari',
-    'Porsche',
-    'Audi',
-    'Lamborghini',
-    'Bentley',
-    'Rolls-Royce',
-    'Aston Martin',
-    'McLaren',
-    'Bugatti',
-    'Pagani',
-    'Koenigsegg',
-    'Chevrolet',
-    'Generic'
-  ];
-
   // Filtered products with all filters
   const filteredProducts = products.filter((p) => {
     const nameMatch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -212,12 +191,6 @@ const ProductList = () => {
     
     return nameMatch && categoryMatch && priceMatch && brandMatch && stockMatch;
   });
-
-  const clearFilters = () => {
-    setPriceRange({ min: 0, max: 1000000 });
-    setSelectedBrand('All Brands');
-    setStockFilter('All');
-  };
 
   // Kullanıcı mağaza sahibi mi?
   let isStoreOwner = false;

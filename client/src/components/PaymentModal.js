@@ -5,7 +5,6 @@ import PasswordInput from './common/PasswordInput';
 import ErrorMessage from './common/ErrorMessage';
 import LoadingSpinner from './common/LoadingSpinner';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { createSubscriptionAndRegister } from '../api/api';
 import './PlanModal.css';
 
@@ -13,7 +12,6 @@ Modal.setAppElement('#root');
 
 const PaymentModal = ({ isOpen, onClose, plan }) => {
   const navigate = useNavigate();
-  const { login } = useAuth();
   const [form, setForm] = useState({
     username: '',
     email: '',

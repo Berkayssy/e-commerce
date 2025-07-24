@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import './PlanSelection.css';
 import PlanModal from '../components/PlanModal';
@@ -64,10 +64,9 @@ const PlanSelection = () => {
   const [plans, setPlans] = useState([]);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [modalPlan, setModalPlan] = useState(null);
   const [showAllPlans, setShowAllPlans] = useState(false);
-  const navigate = useNavigate();
   const location = useLocation();
   
   const titleRef = useRef(null);
@@ -145,24 +144,6 @@ const PlanSelection = () => {
     window.addEventListener('resize', setEqualCardHeights);
     return () => window.removeEventListener('resize', setEqualCardHeights);
   }, []);
-
-  const handlePlanSelect = async (plan) => {
-    setIsLoading(true);
-    try {
-      localStorage.setItem('selectedPlanId', plan._id); // Artık gerçek MongoDB id
-      await new Promise(resolve => setTimeout(resolve, 300));
-      navigate(`/plans/${plan._id}`);
-    } catch (error) {
-      console.error('Navigation error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleButtonClick = (e, plan) => {
-    e.stopPropagation();
-    setModalPlan(plan);
-  };
 
   // FAQ toggle
   const handleFaqToggle = idx => {
