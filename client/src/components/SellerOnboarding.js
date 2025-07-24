@@ -8,7 +8,6 @@ import './SellerOnboarding.css';
 
 const SellerOnboarding = () => {
   const [step, setStep] = useState('loading'); // 'loading', 'create-store', 'add-product', 'dashboard'
-  const [community, setCommunity] = useState(null);
   const [communityId, setCommunityId] = useState(null);
   const navigate = useNavigate();
 
@@ -32,7 +31,6 @@ const SellerOnboarding = () => {
           setStep('create-store');
           return;
         }
-        setCommunity(myCommunity);
         setCommunityId(myCommunity._id);
         if (myCommunity.name) localStorage.setItem('sellerCommunityName', myCommunity.name);
         // 2. Community'nin ürünü var mı kontrol et
@@ -64,7 +62,6 @@ const SellerOnboarding = () => {
       const userId = JSON.parse(atob(localStorage.getItem('token').split('.')[1])).id;
       const myCommunity = (data.communities || []).find(c => c.owner === userId);
       if (myCommunity && myCommunity._id) {
-        setCommunity(myCommunity);
         setCommunityId(myCommunity._id);
         if (myCommunity.logo && myCommunity.logo.url) {
           localStorage.setItem('sellerCommunityLogo', myCommunity.logo.url);
