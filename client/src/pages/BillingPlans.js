@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import './BillingPlans.css';
 
@@ -6,6 +7,16 @@ const BillingPlans = () => {
   const [currentPlan, setCurrentPlan] = useState('pro');
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [isLoading, setIsLoading] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
+  const location = useLocation();
+
+  // Check if plan is expired from URL params
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('expired') === 'true') {
+      setIsExpired(true);
+    }
+  }, [location]);
 
   const plans = [
     {
@@ -105,73 +116,99 @@ const BillingPlans = () => {
         </div>
 
         <div className="billing-container" ref={plansRef}>
-          <div className="billing-toggle" ref={billingToggleRef}>
-            <span className={billingCycle === 'monthly' ? 'active' : ''}>Monthly</span>
-            <button 
-              className="toggle-switch"
-              onClick={handleBillingToggle}
-            >
-              <div className={`toggle-slider ${billingCycle === 'yearly' ? 'yearly' : ''}`}></div>
-            </button>
-            <span className={billingCycle === 'yearly' ? 'active' : ''}>
-              Yearly
-              <span className="save-badge">Save 20%</span>
-            </span>
-          </div>
+          {/* Expired Plan Warning */}
+          {isExpired && (
+            <div className="expired-plan-warning" style={{
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              color: 'white',
+              padding: '16px 20px',
+              borderRadius: '12px',
+              marginBottom: '24px',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              boxShadow: '0 4px 16px rgba(239, 68, 68, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <span style={{fontSize: '20px'}}>⚠️</span>
+              <div>
+                <h3 style={{margin: '0 0 4px 0', fontSize: '16px', fontWeight: 600}}>Plan Expired</h3>
+                <p style={{margin: 0, fontSize: '14px', opacity: 0.9}}>
+                  Your current plan has expired. Please renew your subscription to continue using your store.
+                </p>
+              </div>
+            </div>
+          )}
 
-          <div className="plans-grid grid grid-3">
-            {plans.map((plan, index) => (
-              <div 
-                key={plan.id}
-                className={`plan-card card ${plan.popular ? 'popular' : ''} ${currentPlan === plan.id ? 'current' : ''}`}
-                ref={el => planCardsRef.current[index] = el}
-                data-plan={plan.id}
+          <div className="billing-header">
+            <div className="billing-toggle" ref={billingToggleRef}>
+              <span className={billingCycle === 'monthly' ? 'active' : ''}>Monthly</span>
+              <button 
+                className="toggle-switch"
+                onClick={handleBillingToggle}
               >
-                {plan.popular && <div className="popular-badge">Most Popular</div>}
-                
-                <div className="plan-header">
-                  <h3 className="plan-name">{plan.name}</h3>
-                  <div className="plan-price">
-                    <span className="currency">$</span>
-                    <span className="amount">{plan.price}</span>
-                    <span className="period">/{billingCycle === 'monthly' ? 'mo' : 'year'}</span>
-                  </div>
-                </div>
+                <div className={`toggle-slider ${billingCycle === 'yearly' ? 'yearly' : ''}`}></div>
+              </button>
+              <span className={billingCycle === 'yearly' ? 'active' : ''}>
+                Yearly
+                <span className="save-badge">Save 20%</span>
+              </span>
+            </div>
 
-                <div className="plan-features">
-                  {plan.features.map((feature, featureIndex) => (
-                    <div key={featureIndex} className="feature-item">
-                      <span className="feature-icon">✓</span>
-                      <span className="feature-text">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <button 
-                  className={`plan-button btn ${currentPlan === plan.id ? 'current-plan' : 'btn-primary'}`}
-                  onClick={() => handlePlanChange(plan.id)}
-                  disabled={isLoading}
+            <div className="plans-grid grid grid-3">
+              {plans.map((plan, index) => (
+                <div 
+                  key={plan.id}
+                  className={`plan-card card ${plan.popular ? 'popular' : ''} ${currentPlan === plan.id ? 'current' : ''}`}
+                  ref={el => planCardsRef.current[index] = el}
+                  data-plan={plan.id}
                 >
-                  {currentPlan === plan.id ? 'Current Plan' : 'Choose Plan'}
-                </button>
-              </div>
-            ))}
-          </div>
+                  {plan.popular && <div className="popular-badge">Most Popular</div>}
+                  
+                  <div className="plan-header">
+                    <h3 className="plan-name">{plan.name}</h3>
+                    <div className="plan-price">
+                      <span className="currency">$</span>
+                      <span className="amount">{plan.price}</span>
+                      <span className="period">/{billingCycle === 'monthly' ? 'mo' : 'year'}</span>
+                    </div>
+                  </div>
 
-          <div className="billing-info card">
-            <h3 className="billing-title">Billing Information</h3>
-            <div className="billing-details">
-              <div className="billing-item">
-                <span className="label">Current Plan:</span>
-                <span className="value">{plans.find(p => p.id === currentPlan)?.name}</span>
-              </div>
-              <div className="billing-item">
-                <span className="label">Billing Cycle:</span>
-                <span className="value">{billingCycle === 'monthly' ? 'Monthly' : 'Yearly'}</span>
-              </div>
-              <div className="billing-item">
-                <span className="label">Next Billing:</span>
-                <span className="value">March 15, 2024</span>
+                  <div className="plan-features">
+                    {plan.features.map((feature, featureIndex) => (
+                      <div key={featureIndex} className="feature-item">
+                        <span className="feature-icon">✓</span>
+                        <span className="feature-text">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button 
+                    className={`plan-button btn ${currentPlan === plan.id ? 'current-plan' : 'btn-primary'}`}
+                    onClick={() => handlePlanChange(plan.id)}
+                    disabled={isLoading}
+                  >
+                    {currentPlan === plan.id ? 'Current Plan' : 'Choose Plan'}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="billing-info card">
+              <h3 className="billing-title">Billing Information</h3>
+              <div className="billing-details">
+                <div className="billing-item">
+                  <span className="label">Current Plan:</span>
+                  <span className="value">{plans.find(p => p.id === currentPlan)?.name}</span>
+                </div>
+                <div className="billing-item">
+                  <span className="label">Billing Cycle:</span>
+                  <span className="value">{billingCycle === 'monthly' ? 'Monthly' : 'Yearly'}</span>
+                </div>
+                <div className="billing-item">
+                  <span className="label">Next Billing:</span>
+                  <span className="value">March 15, 2024</span>
+                </div>
               </div>
             </div>
           </div>

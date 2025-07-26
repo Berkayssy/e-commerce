@@ -47,6 +47,7 @@ import './styles/global.css';
 import EditProduct from './pages/EditProduct';
 import SellerOnboarding from './components/SellerOnboarding';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import PostListing from './pages/PostListing';
 
 function AppContent() {
   const { token } = useAuth();
@@ -86,6 +87,7 @@ function AppContent() {
         
         <Route path="/edit-product/:id" element={<EditProduct />} />
         <Route path="/onboarding" element={<SellerOnboarding />} />
+        <Route path="/post-listing/:sellerId?" element={<PostListing />} />
         
         <Route path="*" element={<Home />} />
       </Routes>

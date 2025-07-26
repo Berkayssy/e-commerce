@@ -5,7 +5,7 @@ import PasswordInput from './common/PasswordInput';
 import ErrorMessage from './common/ErrorMessage';
 import LoadingSpinner from './common/LoadingSpinner';
 import { useNavigate } from 'react-router-dom';
-import { createSubscriptionAndRegister } from '../api/api';
+import { registerSeller } from '../api/api';
 import './PlanModal.css';
 
 Modal.setAppElement('#root');
@@ -13,10 +13,11 @@ Modal.setAppElement('#root');
 const PaymentModal = ({ isOpen, onClose, plan }) => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    username: '',
+    name: '',
+    surname: '',
     email: '',
     password: '',
-    storeName: '',
+    confirmPassword: '',
     phone: '',
     country: '',
     city: '',
@@ -29,11 +30,22 @@ const PaymentModal = ({ isOpen, onClose, plan }) => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [passwordMatch, setPasswordMatch] = useState(true);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     if (error) setError('');
+    
+    // Real-time password matching validation
+    if (e.target.name === 'password' || e.target.name === 'confirmPassword') {
+      if (form.password && form.confirmPassword) {
+        setPasswordMatch(form.password === form.confirmPassword);
+      } else {
+        setPasswordMatch(true);
+      }
+    }
   };
+
   // Kart numarası otomatik formatlama (4'lü gruplar, tire ile)
   const formatCardNumber = (value) => {
     const digits = value.replace(/\D/g, '').slice(0, 16);
@@ -43,12 +55,14 @@ const PaymentModal = ({ isOpen, onClose, plan }) => {
     }
     return groups.join('-');
   };
+
   // Tarih otomatik formatlama MM/YY
   const formatExpiry = (value) => {
     const digits = value.replace(/\D/g, '').slice(0, 4);
     if (digits.length <= 2) return digits;
     return digits.slice(0, 2) + '/' + digits.slice(2, 4);
   };
+
   // CVV sadece 3 hane
   const formatCvv = (value) => value.replace(/\D/g, '').slice(0, 3);
 
@@ -64,49 +78,82 @@ const PaymentModal = ({ isOpen, onClose, plan }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.username || !form.email || !form.password || !form.storeName) {
-      setError('Please fill in all registration fields.');
+    
+    // Validate required fields
+    if (!form.name || !form.surname || !form.email || !form.password || !form.confirmPassword || !form.phone || !form.country || !form.city || !form.address) {
+      setError('Please fill in all required registration fields.');
       return;
     }
+    
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+    
     if (plan.price > 0 && (!card.number || !card.expiry || !card.cvv)) {
       setError('Please fill in all payment fields.');
       return;
     }
+
     setLoading(true);
+    setError('');
+
     try {
-      // Tek API çağrısı ile register + subscription
       const payload = {
-        username: form.username,
+        name: form.name,
+        surname: form.surname,
         email: form.email,
         password: form.password,
-        storeName: form.storeName,
         phone: form.phone,
         country: form.country,
         city: form.city,
         address: form.address,
-        plan: plan._id || plan.id,
+        planId: plan._id || plan.id,
         cardNumber: card.number,
         cardExpiry: card.expiry,
         cardCvv: card.cvv,
-        role: 'seller'
+        billingAddress: form.address // Use same address for billing
       };
-      const response = await createSubscriptionAndRegister(payload);
-      // Token ve userId kaydet
-      if (response.token) localStorage.setItem('token', response.token);
-      if (response.userId) localStorage.setItem('userId', response.userId);
-      if (response.planId) localStorage.setItem('selectedPlanId', response.planId);
+
+      const response = await registerSeller(payload);
+
+      // Store authentication data
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+      }
+      
+      if (response.user && response.user.id) {
+        localStorage.setItem('userId', response.user.id);
+      }
+      
+      if (response.seller && response.seller.id) {
+        localStorage.setItem('sellerId', response.seller.id);
+      }
+      
+      if (response.seller && response.seller.planId) {
+        localStorage.setItem('selectedPlanId', response.seller.planId);
+      }
+
       setLoading(false);
       onClose();
-      if (response.sellerId && response.token) {
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('sellerId', response.sellerId);
-        navigate('/onboarding'); // Mağaza açma/onboarding sayfası
+
+      // Navigate based on seller status
+      if (response.seller && response.seller.status === 'active') {
+        navigate('/onboarding'); // Go to store creation
+      } else if (response.seller && response.seller.status === 'pending') {
+        navigate('/dashboard'); // Go to dashboard for pending verification
       } else {
-        navigate('/'); // Fallback: anasayfa
+        navigate('/'); // Fallback to home
       }
+
     } catch (err) {
       setLoading(false);
-      setError(err.response?.data?.message || err.message || 'An error occurred');
+      setError(err.response?.data?.message || err.message || 'Registration failed. Please try again.');
     }
   };
 
@@ -141,17 +188,17 @@ const PaymentModal = ({ isOpen, onClose, plan }) => {
               <h3 style={{ marginBottom: 6 }}>Registration</h3>
               <InputGroup
                 icon="👤"
-                name="username"
-                placeholder="Full Name"
-                value={form.username}
+                name="name"
+                placeholder="First Name"
+                value={form.name}
                 onChange={handleChange}
                 required
               />
               <InputGroup
-                icon="🏪"
-                name="storeName"
-                placeholder="Store Name"
-                value={form.storeName}
+                icon="👤"
+                name="surname"
+                placeholder="Last Name"
+                value={form.surname}
                 onChange={handleChange}
                 required
               />
@@ -170,6 +217,22 @@ const PaymentModal = ({ isOpen, onClose, plan }) => {
                 onChange={handleChange}
                 required
               />
+              <PasswordInput
+                name="confirmPassword"
+                placeholder="Confirm Password"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                required
+                style={{
+                  borderColor: form.confirmPassword && !passwordMatch ? '#ff4444' : undefined,
+                  backgroundColor: form.confirmPassword && !passwordMatch ? '#fff5f5' : undefined
+                }}
+              />
+              {form.confirmPassword && !passwordMatch && (
+                <div style={{ color: '#ff4444', fontSize: '12px', marginTop: '-8px', marginBottom: '8px' }}>
+                  Passwords do not match
+                </div>
+              )}
               <InputGroup
                 icon="📞"
                 name="phone"

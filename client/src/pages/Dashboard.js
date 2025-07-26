@@ -9,15 +9,20 @@ import LoadingSpinner from '../components/common/LoadingSpinner'
 import ErrorMessage from '../components/common/ErrorMessage'
 import RetryButton from '../components/common/RetryButton'
 import SellerOnboarding from '../components/SellerOnboarding';
+import axios from 'axios'; // Added axios import
+import { useLocation } from 'react-router-dom';
 
 export default function Dashboard() {
   const { token, role } = useAuth();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const communityId = params.get('communityId');
+  const [isLoadingCommunity, setIsLoadingCommunity] = useState(false);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState('week');
-
-  // GSAP refs
+  
   const pageRef = useRef(null);
   const headerRef = useRef(null);
   const statsRef = useRef(null);
@@ -41,6 +46,45 @@ export default function Dashboard() {
     if (!previous || previous === 0) return 0;
     return ((current - previous) / previous * 100).toFixed(1);
   };
+
+  // Fetch seller community if needed
+  useEffect(() => {
+    if (role === "seller" && !communityId) {
+      setIsLoadingCommunity(true);
+      const fetchSellerCommunity = async () => {
+        try {
+          const response = await axios.get(`${process.env.REACT_APP_API_URL}/sellers/my-community`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+          });
+          if (response.data.community) {
+            window.location.href = `/dashboard?communityId=${response.data.community._id}`;
+            return;
+          }
+        } catch (error) {
+          console.error('Error fetching seller community:', error);
+        }
+        
+        // Community bulunamadı, plan durumunu kontrol et
+        try {
+          const planResponse = await axios.get(`${process.env.REACT_APP_API_URL}/sellers/plan-status`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+          });
+          
+          if (planResponse.data.isExpired) {
+            // Plan bitti, billing sayfasına yönlendir
+            window.location.href = '/billing?expired=true';
+            return;
+          }
+        } catch (planError) {
+          console.error('Error checking plan status:', planError);
+        }
+        
+        setIsLoadingCommunity(false);
+      };
+      
+      fetchSellerCommunity();
+    }
+  }, [role, communityId]);
 
   useEffect(() => {
     if (token && role === "admin") {
@@ -142,19 +186,17 @@ export default function Dashboard() {
             <div className="dashboard-content" ref={statsRef}>
               <div className="stats-grid">
                 {[
-                  { icon: '📦', title: 'Total Orders', value: formatNumber(stats.totalOrders), growth: getGrowthRate(stats.totalOrders, stats.previousOrders) },
-                  { icon: '💰', title: 'Total Revenue', value: formatCurrency(stats.totalRevenue), growth: getGrowthRate(stats.totalRevenue, stats.previousRevenue) },
-                  { icon: '👥', title: 'Total Users', value: formatNumber(stats.totalUsers), growth: getGrowthRate(stats.totalUsers, stats.previousUsers) },
-                  { icon: '📈', title: 'Conversion Rate', value: `${(stats.conversionRate || 0).toFixed(1)}%`, growth: (stats.conversionRateGrowth || 0).toFixed(1) }
+                  { title: 'Total Sales', value: formatCurrency(stats.totalSales), change: `+${getGrowthRate(stats.totalSales, stats.previousSales)}%`, icon: '📈' },
+                  { title: 'Total Orders', value: formatNumber(stats.totalOrders), change: `+${getGrowthRate(stats.totalOrders, stats.previousOrders)}%`, icon: '🛒' },
+                  { title: 'Active Users', value: formatNumber(stats.activeUsers), change: `+${getGrowthRate(stats.activeUsers, stats.previousUsers)}%`, icon: '👥' },
+                  { title: 'Revenue', value: formatCurrency(stats.revenue), change: `+${getGrowthRate(stats.revenue, stats.previousRevenue)}%`, icon: '💰' }
                 ].map((stat, index) => (
                   <div key={stat.title} className="stat-card" ref={el => statCardsRef.current[index] = el}>
                     <div className="stat-icon">{stat.icon}</div>
-                    <div className="stat-info">
-                      <h3>{stat.title}</h3>
-                      <div className="stat-value">{stat.value}</div>
-                      <div className="stat-growth positive">
-                        +{stat.growth}% from last period
-                      </div>
+                    <div className="stat-content">
+                      <h3 className="stat-title">{stat.title}</h3>
+                      <p className="stat-value">{stat.value}</p>
+                      <span className="stat-change">{stat.change}</span>
                     </div>
                   </div>
                 ))}
@@ -245,14 +287,90 @@ export default function Dashboard() {
   }
 
   if (role === "seller") {
-    return <SellerOnboarding />;
+    // Seller için de aynı dashboard'u göster, sadece communityId ile
+    if (communityId) {
+      return (
+        <div className="dashboard-page" ref={pageRef}>
+          <div className="dashboard-container">
+            <div className="dashboard-header" ref={headerRef}>
+              <h1
+                className="dashboard-welcome-title"
+                style={{
+                  fontWeight: 700,
+                  fontSize: '2.1rem',
+                  background: 'linear-gradient(90deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  letterSpacing: '-0.01em',
+                  marginBottom: 8
+                }}
+              >
+                Welcome to Your Store Dashboard!
+              </h1>
+              <p>Monitor your business performance and analytics</p>
+            </div>
+
+            <div className="dashboard-content" ref={statsRef}>
+              <div className="quick-actions" ref={quickActionsRef}>
+                <h3>Quick Actions</h3>
+                <div className="actions-grid">
+                  {[
+                    { icon: '📦', text: 'Manage Products', href: `/products?communityId=${communityId}` },
+                    { icon: '📋', text: 'View Orders', href: `/order?communityId=${communityId}` },
+                    { icon: '📊', text: 'Analytics', href: `/analytics?communityId=${communityId}` },
+                    { icon: '⚙️', text: 'Seller Panel', href: `/settings?communityId=${communityId}` },
+                    { icon: '💬', text: 'Support', href: `/support?communityId=${communityId}` },
+                    { icon: '🛡️', text: 'Assign Admin', href: `/assign-admin?communityId=${communityId}` }
+                  ].map(action => (
+                    <a key={action.text} href={action.href} className="action-btn">
+                      <div className="action-icon">{action.icon}</div>
+                      <span>{action.text}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    } else {
+      // CommunityId yoksa seller'ın kendi community'sini bul
+      if (isLoadingCommunity) {
+        return (
+          <div className="dashboard-page" ref={pageRef}>
+            <div className="dashboard-container">
+              <div className="dashboard-content">
+                <LoadingSpinner message="Loading your store dashboard..." />
+              </div>
+            </div>
+          </div>
+        );
+      }
+      
+      // Community bulunamazsa onboarding'e yönlendir
+      return <SellerOnboarding />;
+    }
   }
 
-  // User Dashboard
+  // User Dashboard - sadece user role için
+  if (role === "user") {
+    return (
+      <div className="dashboard-container">
+        <div className="dashboard-content">
+          <CommunityList />
+        </div>
+      </div>
+    );
+  }
+
+  // Role yoksa veya loading durumunda
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-content">
-        <CommunityList />
+    <div className="dashboard-page" ref={pageRef}>
+      <div className="dashboard-container">
+        <div className="dashboard-content">
+          <LoadingSpinner message="Loading dashboard..." />
+        </div>
       </div>
     </div>
   );

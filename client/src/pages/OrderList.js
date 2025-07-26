@@ -19,8 +19,10 @@ const OrderList = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [productCount, setProductCount] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
+  const role = localStorage.getItem('role');
 
   // GSAP refs
   const pageRef = useRef(null);
@@ -28,13 +30,38 @@ const OrderList = () => {
   const filtersRef = useRef(null);
   const ordersRef = useRef(null);
   const orderCardsRef = useRef([]);
+  
+  console.log("role", role);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const communityId = params.get('communityId');
+    let communityId = params.get('communityId');
+    
     if (!communityId) {
-      navigate('/communities');
-      return;
+      // Seller ise kendi community'sini bul
+      if (role === 'seller') {
+        const fetchSellerCommunity = async () => {
+          try {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/sellers/my-community`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+            });
+            if (response.data.community) {
+              navigate(`/order?communityId=${response.data.community._id}`);
+              return;
+            }
+          } catch (error) {
+            console.error('Error fetching seller community:', error);
+          }
+          // Community bulunamazsa communities sayfasına yönlendir
+          navigate('/communities');
+        };
+        fetchSellerCommunity();
+        return;
+      } else {
+        // Admin değilse communities sayfasına yönlendir
+        navigate('/communities');
+        return;
+      }
     }
 
     const token = localStorage.getItem("token");
@@ -50,6 +77,19 @@ const OrderList = () => {
         const res = await getOrdersByCommunity(communityId);
         setOrders(res.orders || []);
         setHasMore(false); // topluluk bazlı sayfalama yoksa false
+        
+        // Fetch product count for seller
+        if (role === 'seller') {
+          try {
+            const productsRes = await axios.get(`${process.env.REACT_APP_API_URL}/products?communityId=${communityId}`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+            });
+            setProductCount(productsRes.data.products?.length || 0);
+          } catch (productErr) {
+            console.error('Error fetching products:', productErr);
+            setProductCount(0);
+          }
+        }
       } catch (err) {
         console.error("Error fetching orders:", err);
         setError(err.response?.data?.error || "Failed to fetch orders");
@@ -62,7 +102,7 @@ const OrderList = () => {
     };
 
     fetchOrders();
-  }, [navigate, location.search]);
+  }, [navigate, location.search, role]);
 
   // GSAP animations
   useGsapFadeIn([pageRef, headerRef, filtersRef, ordersRef], { 
@@ -155,13 +195,60 @@ const OrderList = () => {
     );
   }
 
-  if (orders.length === 0 && !loading) {
+  if ((role === 'seller' || role === 'admin') && orders.length === 0 && !loading) {
     return (
       <div className="order-no-orders" ref={pageRef}>
         <div className="no-orders-content">
-          <div className="no-orders-icon">📦</div>
-          <h2>No Orders Found</h2>
-          <p>There are no orders in the system yet.</p>
+          <div className="no-orders-icon">🎯</div>
+          <h2>Ready to Advertise?</h2>
+          <p>Your store is ready! Post your first listing to reach customers and start making sales. Create compelling advertisements to attract buyers.</p>
+          
+          <div className="no-orders-stats">
+            <div className="stat-item">
+              <div className="stat-icon">📦</div>
+              <div className="stat-text">{productCount} Products</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-icon">👥</div>
+              <div className="stat-text">0 Customers</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-icon">💰</div>
+              <div className="stat-text">$0 Revenue</div>
+            </div>
+          </div>
+
+          <div className="no-orders-actions">
+            <button 
+              className="btn btn-primary"
+              onClick={() => {
+                const token = localStorage.getItem('token');
+                if (token) {
+                  try {
+                    const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+                    const sellerId = tokenPayload.sellerId;
+                    navigate(`/post-listing/${sellerId}`);
+                  } catch (err) {
+                    navigate('/post-listing');
+                  }
+                } else {
+                  navigate('/post-listing');
+                }
+              }}
+            >
+              <span className="btn-icon">📢</span>
+              Post Your First Listing
+            </button>
+          </div>
+          <div className="no-orders-tips">
+            <h4>💡 Tips for Successful Listings:</h4>
+            <ul>
+              <li>Use high-quality photos to attract attention</li>
+              <li>Write compelling product descriptions</li>
+              <li>Set competitive prices to stand out</li>
+              <li>Keep your listings updated and active</li>
+            </ul>
+          </div>
         </div>
       </div>
     );

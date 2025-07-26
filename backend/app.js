@@ -7,6 +7,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const pingRoute = require("./routes/ping");
 const adminRoutes = require("./routes/adminRoutes"); // Admin routes
 const planRoutes = require('./routes/planRoutes');
+const sellerRoutes = require('./routes/sellerRoutes');
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/ping", pingRoute);
 app.use("/api/admin", adminRoutes); // Admin routes
-app.use('/api', planRoutes);
+app.use('/api/plans', planRoutes);
+app.use('/api/sellers', sellerRoutes);
 
 module.exports = app;

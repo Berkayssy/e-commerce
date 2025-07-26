@@ -27,6 +27,11 @@ const userSchema = new mongoose.Schema({
     },
     profilePicture: {
         type: String
+    },
+    storeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Community',
+        required: false
     }
 },{timestamps: true});
 

@@ -155,6 +155,14 @@ exports.createOnboardingStore = async (req, res) => {
         if (!owner) {
             return res.status(401).json({ message: 'Unauthorized: owner not found.' });
         }
+
+        // Seller'ın mevcut subscription'ını bul
+        const Seller = require('../models/Seller');
+        const seller = await Seller.findOne({ userId: owner });
+        if (!seller) {
+            return res.status(404).json({ message: 'Seller profile not found.' });
+        }
+
         // Community kaydı
         const community = new Community({
             name,
@@ -169,26 +177,23 @@ exports.createOnboardingStore = async (req, res) => {
         });
         await community.save();
 
-        // Subscription kaydı
-        const now = new Date();
-        const end = new Date();
-        end.setMonth(now.getMonth() + 1); // 1 ay sonrası
+        // Mevcut subscription'ı güncelle (yeni oluşturma)
         const Subscription = require('../models/Subscription');
-        const subscription = new Subscription({
-            user: owner,
-            plan,
-            store: community._id, // <-- Burası önemli!
-            startDate: now,
-            endDate: end,
-            isActive: true
-        });
-        await subscription.save();
+        const subscription = await Subscription.findById(seller.subscriptionId);
+        if (subscription) {
+            subscription.store = community._id;
+            await subscription.save();
+        }
 
-        // Community'ye subscription referansı ekle (opsiyonel)
-        community.subscription = subscription._id;
+        // Seller'ın storeId'sini güncelle
+        seller.storeId = community._id;
+        await seller.save();
+
+        // Community'ye subscription referansı ekle
+        community.subscription = seller.subscriptionId;
         await community.save();
 
-        return res.status(201).json({ community, subscription });
+        return res.status(201).json({ community, subscription, seller });
     } catch (err) {
         return res.status(500).json({ message: err.message });
     }

@@ -35,32 +35,75 @@ const Navbar = () => {
         const fetchCommunityData = async () => {
             if (token && (role === 'seller' || role === 'admin')) {
                 const communityId = getCommunityIdFromUrl(location.search);
+                
+                // For sellers, always fetch their profile regardless of communityId in URL
+                if (role === 'seller') {
+                    try {
+                        const res = await axios.get(`${process.env.REACT_APP_API_URL}/sellers/profile`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        console.log('🔍 Seller profile response:', res.data);
+                        console.log('🔍 StoreId in response:', res.data.storeId);
+                        
+                        const communityData = res.data.storeId;
+                        console.log('🔍 CommunityData for seller:', communityData);
+                        if (communityData && communityData.logo && communityData.logo.url) {
+                            console.log('Setting community logo:', communityData.logo.url);
+                            setCommunityLogo(communityData.logo.url);
+                        } else {
+                            console.log('No logo found in community data');
+                            setCommunityLogo(null);
+                        }
+                        if (communityData && communityData.name) {
+                            setCommunityName(communityData.name);
+                        } else {
+                            setCommunityName(null);
+                        }
+                    } catch (err) {
+                        console.error('Error fetching seller profile:', err);
+                        setCommunityLogo(null);
+                        setCommunityName(null);
+                    }
+                    return;
+                }
+                
+                // For admins, check communityId
                 if (!communityId) {
                     setCommunityLogo(null);
                     setCommunityName(null);
                     return;
                 }
+                
                 try {
                     const res = await axios.get(`${process.env.REACT_APP_API_URL}/admin/community/${communityId}`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
-                    const community = res.data;
+                    
+                    const community = res.data.community || res.data;
+                    console.log('🔍 Community data:', community);
                     if (community) {
-                        if (community.logo && community.logo.url) {
-                            setCommunityLogo(community.logo.url);
+                        console.log('Community data:', community);
+                        const communityData = community;
+                        console.log('🔍 CommunityData for admin:', communityData);
+                        if (communityData && communityData.logo && communityData.logo.url) {
+                            console.log('Setting community logo:', communityData.logo.url);
+                            setCommunityLogo(communityData.logo.url);
                         } else {
+                            console.log('No logo found in community data');
                             setCommunityLogo(null);
                         }
-                        if (community.name) {
-                            setCommunityName(community.name);
+                        if (communityData && communityData.name) {
+                            setCommunityName(communityData.name);
                         } else {
                             setCommunityName(null);
                         }
                     } else {
+                        console.log('No community data found');
                         setCommunityLogo(null);
                         setCommunityName(null);
                     }
                 } catch (err) {
+                    console.error('Error fetching community data:', err);
                     setCommunityLogo(null);
                     setCommunityName(null);
                 }
@@ -140,30 +183,34 @@ const Navbar = () => {
         return () => window.removeEventListener('click', handleClick, true);
     }, [categoryMenuOpen]);
 
-    // Sidebar animation
+    // Sidebar artık sadece X butonuna tıklandığında kapanacak
+    // Outside click handler kaldırıldı
+
+    // Escape key handler da kaldırıldı - sadece X butonuna tıklandığında kapanacak
+
+    // Prevent body scroll when sidebar is open on mobile
     useEffect(() => {
-        if (sidebarRef.current) {
-            if (sidebarOpen) {
-                gsap.set(sidebarRef.current, { x: -320 });
-                gsap.to(sidebarRef.current, { 
-                    x: 0, 
-                    duration: 0.4, 
-                    ease: 'power2.out' 
-                });
-            } else {
-                gsap.to(sidebarRef.current, { 
-                    x: -320, 
-                    duration: 0.3, 
-                    ease: 'power2.in' 
-                });
-            }
+        if (sidebarOpen && window.innerWidth <= 1023) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
         }
+        
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
     }, [sidebarOpen]);
 
     // Kullanıcı çıkış işlemini gerçekleştirir
     const handleLogout = () => {
         logout();
         navigate("/");
+    };
+
+    // Sidebar toggle fonksiyonu
+    const toggleSidebar = () => {
+        console.log('Sidebar toggled:', !sidebarOpen);
+        setSidebarOpen(!sidebarOpen);
     };
 
     // Sidebar ve kategori menüsünü kapatır
@@ -175,6 +222,7 @@ const Navbar = () => {
     // Sidebar menüde tıklamaların yayılmasını engeller
     const handleMenuClick = (e) => {
         e.stopPropagation();
+        // Sidebar'ı kapatma - sadece X butonuna tıklandığında kapanacak
     };
 
     // Dışarı tıklanınca dropdown'ı kapat
@@ -206,31 +254,33 @@ const Navbar = () => {
 
     // Sidebar nav-linklerini render eder
     const communityId = getCommunityIdFromUrl(location.search);
+    const currentPath = location.pathname;
+    
     const renderNavLinks = () => (
         <div className="sidebar-links">
             {token && effectiveRole === 'user' && (
                 <>
-                    <Link to="/communities" className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to="/communities" className={`sidebar-link ${currentPath === '/communities' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="stores">🛍️</span>
                         All Stores
                     </Link>
-                    <Link to="/order" className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to="/order" className={`sidebar-link ${currentPath === '/order' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="orders">📦</span>
                         My Orders
                     </Link>
-                    <Link to="/profile" className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to="/profile" className={`sidebar-link ${currentPath === '/profile' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="profile">👤</span>
                         Profile Settings
                     </Link>
-                    <Link to="/billing" className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to="/billing" className={`sidebar-link ${currentPath === '/billing' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="billing">💳</span>
                         Billing & Plans
                     </Link>
-                    <Link to="/support" className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to="/support" className={`sidebar-link ${currentPath === '/support' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="support">🆘</span>
                         Support
                     </Link>
-                    <Link to="/notifications" className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to="/notifications" className={`sidebar-link ${currentPath === '/notifications' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="notifications">🔔</span>
                         Notifications
                     </Link>
@@ -238,51 +288,60 @@ const Navbar = () => {
             )}
             {(token && (effectiveRole === 'seller' || effectiveRole === 'admin')) && (
                 <>
-                    <Link to={communityId ? `/products?communityId=${communityId}` : '/products'} className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to={communityId ? `/products?communityId=${communityId}` : '/products'} className={`sidebar-link ${currentPath === '/products' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="products">🛍️</span>
                         My Products
                     </Link>
-                    <Link to={communityId ? `/add-product?communityId=${communityId}` : '/add-product'} className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to={communityId ? `/add-product?communityId=${communityId}` : '/add-product'} className={`sidebar-link ${currentPath === '/add-product' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="add-product">➕</span>
                         Add Product
                     </Link>
-                    <Link to={communityId ? `/order?communityId=${communityId}` : '/order'} className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to={communityId ? `/order?communityId=${communityId}` : '/order'} className={`sidebar-link ${currentPath === '/order' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="orders">📦</span>
-                        All Orders
+                        My Orders
                     </Link>
-                    <Link to="/dashboard" className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to={communityId ? `/dashboard?communityId=${communityId}` : '/dashboard'} className={`sidebar-link ${currentPath === '/dashboard' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="dashboard">📊</span>
                         Dashboard
                     </Link>
-                    <Link to={communityId ? `/users?communityId=${communityId}` : '/users'} className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to={communityId ? `/users?communityId=${communityId}` : '/users'} className={`sidebar-link ${currentPath === '/users' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="users">👥</span>
                         User Management
                     </Link>
-                    <Link to={communityId ? `/analytics?communityId=${communityId}` : '/analytics'} className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to={communityId ? `/analytics?communityId=${communityId}` : '/analytics'} className={`sidebar-link ${currentPath === '/analytics' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="analytics">📈</span>
                         Analytics
                     </Link>
-                    <Link to={communityId ? `/settings?communityId=${communityId}` : '/settings'} className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to={communityId ? `/settings?communityId=${communityId}` : '/settings'} className={`sidebar-link ${currentPath === '/settings' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="settings">⚙️</span>
-                        Admin Settings
+                        Seller Panel
                     </Link>
-                    <Link to={communityId ? `/support?communityId=${communityId}` : '/support'} className="sidebar-link" onClick={handleMenuClick}>
+                    <Link to={communityId ? `/support?communityId=${communityId}` : '/support'} className={`sidebar-link ${currentPath === '/support' ? 'active' : ''}`} onClick={handleMenuClick}>
                         <span role="img" aria-label="support">🆘</span>
                         Support Center
                     </Link>
+                    <Link to={communityId ? `/profile?communityId=${communityId}` : '/profile'} className={`sidebar-link ${currentPath === '/profile' ? 'active' : ''}`} onClick={handleMenuClick}>
+                        <span role="img" aria-label="profile">👤</span>
+                        Profile Settings
+                    </Link>
                     {/* Sadece seller rolü için admin atama linki */}
                     {effectiveRole === 'seller' && (
-                        communityId ? (
-                            <Link to={`/assign-admin?communityId=${communityId}`} className="sidebar-link" onClick={handleMenuClick}>
-                            <span role="img" aria-label="admin-assign">🛡️</span>
-                            Assign Admin
-                        </Link>
-                        ) : (
-                            <span className="sidebar-link disabled" style={{opacity: 0.5, cursor: 'not-allowed'}} title="No community selected">
-                                <span role="img" aria-label="admin-assign">🛡️</span>
-                                Assign Admin
-                            </span>
-                        )
+                        (() => {
+                            const sellerCommunityId = localStorage.getItem('sellerCommunityId');
+                            const effectiveCommunityId = communityId || sellerCommunityId;
+                            
+                            return effectiveCommunityId ? (
+                                <Link to={`/assign-admin?communityId=${effectiveCommunityId}`} className={`sidebar-link ${currentPath === '/assign-admin' ? 'active' : ''}`} onClick={handleMenuClick}>
+                                    <span role="img" aria-label="admin-assign">🛡️</span>
+                                    Assign Admin
+                                </Link>
+                            ) : (
+                                <span className="sidebar-link disabled" style={{opacity: 0.5, cursor: 'not-allowed'}} title="No community selected">
+                                    <span role="img" aria-label="admin-assign">🛡️</span>
+                                    Assign Admin
+                                </span>
+                            );
+                        })()
                     )}
                 </>
             )}
@@ -309,7 +368,11 @@ const Navbar = () => {
         <nav className={`app-navbar ${isScrolled ? 'scrolled' : ''}`} ref={navbarRef}>
             <div className="nav-container">
                 {/* Brand & Sidebar Trigger */}
-                <div className="nav-logo" onClick={() => setSidebarOpen(true)}>
+                <div 
+                    className={`nav-logo ${sidebarOpen ? 'sidebar-open' : ''}`} 
+                    onClick={toggleSidebar}
+                    title={sidebarOpen ? 'Close Sidebar' : 'Open Sidebar'}
+                >
                     {/* Always show diamond SVG as logo icon */}
                     <span className="logo-icon" style={{ fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <svg viewBox="0 0 32 32" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -513,15 +576,18 @@ const Navbar = () => {
                                         position: 'absolute',
                                         top: 44,
                                         right: 0,
-                                        minWidth: 150,
-                                        background: '#fff',
-                                        boxShadow: '0 4px 24px #818cf822',
-                                        borderRadius: 10,
+                                        minWidth: 160,
+                                        background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+                                        backdropFilter: 'blur(20px)',
+                                        border: '1px solid rgba(129, 140, 248, 0.2)',
+                                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(129, 140, 248, 0.1)',
+                                        borderRadius: 12,
                                         zIndex: 100,
-                                        padding: '10px 0',
+                                        padding: '8px 0',
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        gap: 2
+                                        gap: 2,
+                                        animation: 'dropdownFadeIn 0.2s ease-out'
                                     }}
                                 >
                                     <button
@@ -530,32 +596,77 @@ const Navbar = () => {
                                             background: 'none',
                                             border: 'none',
                                             textAlign: 'left',
-                                            padding: '10px 18px',
-                                            fontSize: 15,
-                                            color: '#6366f1',
+                                            padding: '12px 20px',
+                                            fontSize: 14,
+                                            color: '#e2e8f0',
                                             cursor: 'pointer',
-                                            borderRadius: 6,
-                                            transition: 'background 0.15s',
+                                            borderRadius: 8,
+                                            transition: 'all 0.2s ease',
+                                            fontWeight: 500,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 8
                                         }}
-                                        onClick={() => { setAvatarDropdownOpen(false); navigate('/profile'); }}
+                                        onMouseEnter={(e) => {
+                                            e.target.style.background = 'rgba(129, 140, 248, 0.15)';
+                                            e.target.style.color = '#f1f5f9';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.target.style.background = 'none';
+                                            e.target.style.color = '#e2e8f0';
+                                        }}
+                                        onClick={() => { 
+                                            setAvatarDropdownOpen(false); 
+                                            // Role'a göre doğru profile sayfasına git
+                                            if (effectiveRole === 'seller' || effectiveRole === 'admin') {
+                                                const params = new URLSearchParams(location.search);
+                                                const communityId = params.get('communityId');
+                                                if (communityId) {
+                                                    navigate(`/profile?communityId=${communityId}`);
+                                                } else {
+                                                    navigate('/profile');
+                                                }
+                                            } else {
+                                                navigate('/profile');
+                                            }
+                                        }}
                                     >
+                                        <span style={{fontSize: 16}}>👤</span>
                                         Profile
                                     </button>
+                                    <div style={{
+                                        height: '1px',
+                                        background: 'linear-gradient(90deg, transparent 0%, rgba(129, 140, 248, 0.3) 50%, transparent 100%)',
+                                        margin: '4px 16px'
+                                    }}></div>
                                     <button
                                         className="avatar-dropdown-item"
                                         style={{
                                             background: 'none',
                                             border: 'none',
                                             textAlign: 'left',
-                                            padding: '10px 18px',
-                                            fontSize: 15,
-                                            color: '#ef4444',
+                                            padding: '12px 20px',
+                                            fontSize: 14,
+                                            color: '#f87171',
                                             cursor: 'pointer',
-                                            borderRadius: 6,
-                                            transition: 'background 0.15s',
+                                            borderRadius: 8,
+                                            transition: 'all 0.2s ease',
+                                            fontWeight: 500,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 8
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.target.style.background = 'rgba(248, 113, 113, 0.15)';
+                                            e.target.style.color = '#fca5a5';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.target.style.background = 'none';
+                                            e.target.style.color = '#f87171';
                                         }}
                                         onClick={() => { setAvatarDropdownOpen(false); handleLogout(); }}
                                     >
+                                        <span style={{fontSize: 16}}>🚪</span>
                                         Logout
                                     </button>
                                 </div>
@@ -566,13 +677,26 @@ const Navbar = () => {
             </div>
             {/* Sidebar Overlay */}
             {sidebarOpen && (
-                <div className="sidebar-overlay" onClick={closeSidebar} />
+                <div 
+                    className="sidebar-overlay" 
+                    style={{ cursor: 'default' }}
+                />
             )}
             {/* Sidebar */}
             <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`} ref={sidebarRef}>
                 <div className="sidebar-header">
+                    {/* Mağaza Bilgileri */}
                     {token && (effectiveRole === 'seller' || effectiveRole === 'admin') && communityName ? (
-                        <>
+                        <div className="sidebar-store-info" style={{ 
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12,
+                            padding: '16px',
+                            background: 'rgba(129, 140, 248, 0.1)',
+                            borderRadius: 8,
+                            border: '1px solid rgba(129, 140, 248, 0.2)',
+                            marginBottom: 16
+                        }}>
                             {communityLogo ? (
                                 <img 
                                     src={communityLogo} 
@@ -581,22 +705,51 @@ const Navbar = () => {
                                         width: 32,
                                         height: 32,
                                         borderRadius: '6px',
-                                        objectFit: 'cover',
-                                        marginRight: 12
+                                        objectFit: 'cover'
                                     }}
                                 />
                             ) : (
-                                <span className="logo-icon" style={{ marginRight: 12 }}>🏪</span>
+                                <span style={{ fontSize: 20 }}>🏪</span>
                             )}
-                            <span className="logo-text" style={{ fontSize: '1.1rem', fontWeight: 600 }}>{communityName}</span>
-                        </>
+                            <span style={{ 
+                                fontSize: '1rem', 
+                                fontWeight: 600, 
+                                color: '#e2e8f0',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                            }}>{communityName}</span>
+                        </div>
                     ) : (
-                        <>
-                            <span className="logo-icon">🖼️</span>
-                            <span className="logo-text">Galeria</span>
-                        </>
+                        <div className="sidebar-brand">
+                            <span className="logo-icon" style={{ fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <svg viewBox="0 0 32 32" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <linearGradient id="diamondSidebar" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                                            <stop stopColor="#f7c873" />
+                                            <stop offset="0.5" stopColor="#c084fc" />
+                                            <stop offset="1" stopColor="#818cf8" />
+                                        </linearGradient>
+                                    </defs>
+                                    <polygon points="16,4 28,12 16,28 4,12" fill="url(#diamondSidebar)" stroke="#fff" strokeWidth="1.2" />
+                                    <polygon points="16,8 24,13 16,24 8,13" fill="#fff" fillOpacity="0.18" />
+                                </svg>
+                            </span>
+                            <span className="logo-text" style={{ fontSize: '1.2rem', fontWeight: 700, letterSpacing: '-0.01em', background: 'linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Galeria</span>
+                        </div>
                     )}
-                    <button className="sidebar-close" onClick={closeSidebar}>×</button>
+                    
+                    {/* Fixed Close Button - Always visible */}
+                    <button 
+                        className="sidebar-close-fixed" 
+                        onClick={closeSidebar}
+                        title="Close Sidebar"
+                        aria-label="Close Sidebar"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
                 {renderNavLinks()}
             </aside>

@@ -23,9 +23,9 @@
   transition: background-color 0.2s;
 }
 .nav-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1.2rem;
+  max-width: none;
+  margin: 0;
+  padding: 0 0.5rem;
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -33,7 +33,7 @@
 }
 .nav-logo {
   position: absolute;
-  left: 1.2rem;
+  left: 0.5rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -53,7 +53,7 @@
 .nav-links {
   display: flex;
   gap: 1.1rem;
-  margin-right: 1.1rem;
+  margin-right: 0.5rem;
 }
 .nav-links a {
   color: #e2e8f0;

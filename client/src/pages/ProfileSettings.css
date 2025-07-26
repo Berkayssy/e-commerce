@@ -1,5 +1,54 @@
-/* Profile Settings Page - Modern Dark Theme with Horizontal Layout */
-/* Using global styles for page-container, page-content, page-header, page-title, page-subtitle */
+/* Loading Spinner */
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(129, 140, 248, 0.2);
+  border-top: 3px solid #818cf8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-spinner p {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+/* Error and Success Messages */
+.error-message,
+.success-message {
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.error-message {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.success-message {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #86efac;
+}
 
 /* Main Layout - Horizontal Grid */
 .profile-layout {
@@ -97,7 +146,7 @@
 /* Form Styles */
 .profile-container {
   width: 100%;
-  max-width: 900px;
+  justify-content: center;
   margin: 0 auto;
   margin-top: 2.5rem;
   padding: 0;
@@ -145,7 +194,7 @@
 .form-actions {
   display: flex;
   gap: 1rem;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid rgba(129, 140, 248, 0.1);
@@ -233,6 +282,7 @@
 
 .security-item .btn {
   min-width: 120px;
+  justify-content: center;
 }
 
 /* Toggle Switch */
@@ -364,6 +414,7 @@ input:checked + .toggle-slider:before {
   .security-item .btn {
     width: 100%;
     min-width: auto;
+    justify-content: flex-end;
   }
 }
 

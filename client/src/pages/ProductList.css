@@ -982,13 +982,13 @@
   display: flex;
   width: 100%;
   max-width: 1400px;
-  margin: 0 auto;
+  margin: 10px auto;
   position: relative;
 }
 .filters-sidebar {
   min-width: 240px;
   max-width: 280px;
-  background: #191d2b;
+  background: #333334;
   border-radius: 18px;
   box-shadow: 0 2px 16px rgba(20,24,40,0.10);
   border: 1.5px solid #23263a;

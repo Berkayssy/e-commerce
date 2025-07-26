@@ -84,7 +84,7 @@ npm start
 
 ## 📮 API Testing
 
-Use Postman to test all endpoints.  
+Use Postman to test all endpoints.
 Attach your JWT token as a bearer in the Authorization header for protected routes.
 
 ---

@@ -8,7 +8,7 @@ export default function Order() {
 
   return (
     <div>
-      {token && role === "admin" ? (<OrderList />) : null}
+      {token && (role === "admin" || role === "seller") ? (<OrderList />) : null}
       {token && role === "user" ? (<MyOrderList />) : null}
     </div>
   )

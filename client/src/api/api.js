@@ -80,3 +80,24 @@ export const createSubscriptionAndRegister = async (payload) => {
     const res = await instance.post('/auth/register-and-subscribe', payload);
     return res.data;
 };
+
+export const registerSeller = async (payload) => {
+    const res = await instance.post('/sellers/register', payload);
+    return res.data;
+};
+
+export const assignAdmin = async (payload) => {
+    const res = await instance.post('/sellers/assign-admin', payload);
+    return res.data;
+};
+
+// Seller Profile API
+export const getSellerProfile = async () => {
+    const res = await instance.get('/sellers/profile');
+    return res.data;
+};
+
+export const updateSellerProfile = async (payload) => {
+    const res = await instance.put('/sellers/profile', payload);
+    return res.data;
+};

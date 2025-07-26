@@ -32,24 +32,56 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
+        console.log('Login attempt for email:', email);
+        
         const user = await User.findOne({email});
-        if (!user) return res.status(404).json({error: "User not found"});
+        if (!user) {
+            console.log('User not found for email:', email);
+            return res.status(404).json({error: "User not found"});
+        }
 
+        console.log('User found:', { id: user._id, role: user.role, hasPassword: !!user.password });
+        
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({error: "Invalid credentials"});
+        console.log('Password match result:', isMatch);
+        
+        if (!isMatch) {
+            console.log('Invalid credentials for user:', email);
+            return res.status(401).json({error: "Invalid credentials"});
+        }
 
-        const token = jwt.sign({id: user._id, role: user.role}, process.env.JWT_SECRET, {
+        // Seller kullanıcıları için sellerId'yi bul
+        let tokenPayload = {id: user._id, role: user.role};
+        
+        if (user.role === 'seller') {
+            const Seller = require('../models/Seller');
+            const seller = await Seller.findOne({ userId: user._id });
+            if (seller) {
+                tokenPayload.sellerId = seller._id;
+                console.log('Seller found with ID:', seller._id);
+            } else {
+                console.log('No seller profile found for user:', user._id);
+            }
+        }
+
+        const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, {
             expiresIn: '1d'
         });
+
+        console.log('Login successful for user:', email);
 
         res.status(200).json({
             token,
             user: {
                 id: user._id,
-                role: user.role
+                role: user.role,
+                email: user.email,
+                username: user.username,
+                profilePicture: user.profilePicture
             }
         });
     } catch (err) {
+        console.error('Login error:', err);
         res.status(500).json({error: err.message});
     }
 };    
@@ -127,11 +159,18 @@ exports.googleLogin = async (req, res) => {
             await user.save();
         }
 
-        const jwtToken = jwt.sign(
-            { id: user._id, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '1d' }
-        );
+        // Seller kullanıcıları için sellerId'yi token'a ekle
+        let tokenPayload = { id: user._id, role: user.role };
+        
+        if (user.role === 'seller') {
+            const Seller = require('../models/Seller');
+            const seller = await Seller.findOne({ userId: user._id });
+            if (seller) {
+                tokenPayload.sellerId = seller._id;
+            }
+        }
+
+        const jwtToken = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
         res.status(200).json({
             token: jwtToken,

@@ -32,6 +32,7 @@ const ProductList = () => {
 
   const isAdmin = localStorage.getItem("role") === "admin";
   const isUser = localStorage.getItem("role") === "user";
+  const isSeller = localStorage.getItem("role") === "seller";
   const { basket } = useBasket();
   const effectiveBasket = isAdmin ? [] : basket;
   const { searchTerm, selectedCategory } = useSearch();
@@ -51,6 +52,24 @@ const ProductList = () => {
     if (!communityId) {
       if (role === 'seller' && sellerCommunityId) {
         navigate(`/products?communityId=${sellerCommunityId}`);
+        return;
+      } else if (role === 'seller') {
+        // Seller ama communityId yoksa, kendi community'sini bul
+        const fetchSellerCommunity = async () => {
+          try {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/sellers/my-community`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+            });
+            if (response.data.community) {
+              navigate(`/products?communityId=${response.data.community._id}`);
+              return;
+            }
+          } catch (error) {
+            console.error('Error fetching seller community:', error);
+          }
+          navigate('/communities');
+        };
+        fetchSellerCommunity();
         return;
       } else {
         navigate('/communities');
@@ -199,7 +218,24 @@ const ProductList = () => {
       const userId = JSON.parse(atob(token.split('.')[1])).id;
       isStoreOwner = communityOwnerId === userId;
     }
+    // Seller ise ve kendi community'sindeyse store owner olarak kabul et
+    if (isSeller && communityOwnerId) {
+      const sellerId = localStorage.getItem('sellerId');
+      if (sellerId) {
+        // Seller'ın kendi community'si olup olmadığını kontrol et
+        isStoreOwner = true; // Seller kendi community'sinde ise store owner'dır
+      }
+    }
   } catch (e) {}
+
+  // Debug için console.log
+  console.log('Debug ProductList:', {
+    isSeller,
+    isAdmin,
+    isStoreOwner,
+    communityOwnerId,
+    role: localStorage.getItem('role')
+  });
 
   if (!loading && products.length === 0 && isStoreOwner) {
     return (
@@ -360,7 +396,7 @@ const ProductList = () => {
                     </div>
                     <div className="product-description-card">{product.description}</div>
                   </div>
-                  {isAdmin && (
+                  {(isAdmin || (isSeller && isStoreOwner)) && (
                     <div className="product-actions-section">
                       <button className="icon-btn edit-btn" onClick={(e) => { e.stopPropagation(); navigate(`/edit-product/${product._id}`); }} title="Edit">
                         <span role="img" aria-label="edit">✏️</span>

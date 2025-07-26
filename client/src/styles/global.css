@@ -113,7 +113,7 @@ code {
 .page-content {
   width: 100%;
   max-width: 1400px;
-  margin: 0 auto;
+  margin: 0;
   padding: var(--page-padding);
 }
 
@@ -459,5 +459,55 @@ code {
 .plan-detail-page,
 .product-list-page,
 .profile-container {
-  padding-top: var(--navbar-height);
+  padding-top: 0;
+} 
+
+/* Large screen specific fixes */
+@media (min-width: 1024px) {
+  .page-container,
+  .dashboard-page,
+  .admin-settings-page,
+  .support-page,
+  .notifications-page,
+  .privacy-page,
+  .terms-page,
+  .order-page-container,
+  .editpage-wrapper,
+  .plan-selection-page,
+  .plan-detail-page,
+  .product-list-page,
+  .profile-container {
+    padding-top: 0;
+    margin: 0;
+  }
+  
+  .page-content {
+    margin: 0;
+    padding: var(--page-padding);
+  }
+}
+
+/* Extra large screen specific fixes */
+@media (min-width: 1200px) {
+  .page-container,
+  .dashboard-page,
+  .admin-settings-page,
+  .support-page,
+  .notifications-page,
+  .privacy-page,
+  .terms-page,
+  .order-page-container,
+  .editpage-wrapper,
+  .plan-selection-page,
+  .plan-detail-page,
+  .product-list-page,
+  .profile-container {
+    padding-top: 0;
+    margin: 0;
+  }
+  
+  .page-content {
+    margin: 0;
+    padding: var(--page-padding);
+  }
 } 

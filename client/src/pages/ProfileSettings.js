@@ -2,25 +2,25 @@ import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import './ProfileSettings.css';
 import { useNavigate } from 'react-router-dom';
+import { getSellerProfile, updateSellerProfile } from '../api/api';
 
 const ProfileSettings = () => {
   const pageRef = useRef(null);
   const formRef = useRef(null);
   const [activeTab, setActiveTab] = useState('profile');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 (555) 123-4567',
-    bio: 'Passionate about technology and innovation.',
-    location: 'San Francisco, CA',
-    website: 'https://johndoe.com',
-    notifications: {
-      email: true,
-      push: false,
-      sms: true,
-      marketing: false
-    }
+    name: '',
+    surname: '',
+    phone: '',
+    country: '',
+    city: '',
+    address: '',
+    emailNotifications: true,
+    planReminders: true
   });
   const navigate = useNavigate();
 
@@ -34,7 +34,34 @@ const ProfileSettings = () => {
       { opacity: 0, y: 50, scale: 0.95 },
       { opacity: 1, y: 0, scale: 1, duration: 1, ease: 'power2.out', delay: 0.2 }
     );
+
+    // Fetch seller profile data
+    fetchSellerProfile();
   }, []);
+
+  const fetchSellerProfile = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const sellerData = await getSellerProfile();
+      
+      setFormData({
+        name: sellerData.name || '',
+        surname: sellerData.surname || '',
+        phone: sellerData.phone || '',
+        country: sellerData.country || '',
+        city: sellerData.city || '',
+        address: sellerData.address || '',
+        emailNotifications: sellerData.emailNotifications !== undefined ? sellerData.emailNotifications : true,
+        planReminders: sellerData.planReminders !== undefined ? sellerData.planReminders : true
+      });
+    } catch (err) {
+      console.error('Error fetching seller profile:', err);
+      setError('Failed to load profile data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -47,18 +74,53 @@ const ProfileSettings = () => {
   const handleNotificationChange = (type) => {
     setFormData(prev => ({
       ...prev,
-      notifications: {
-        ...prev.notifications,
-        [type]: !prev.notifications[type]
-      }
+      [type]: !prev[type]
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Form submitted:', formData);
+    try {
+      setSaving(true);
+      setError('');
+      setSuccess('');
+
+      const updatePayload = {
+        name: formData.name,
+        surname: formData.surname,
+        phone: formData.phone,
+        country: formData.country,
+        city: formData.city,
+        address: formData.address,
+        emailNotifications: formData.emailNotifications,
+        planReminders: formData.planReminders
+      };
+
+      await updateSellerProfile(updatePayload);
+      setSuccess('Profile updated successfully!');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setError('Failed to update profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <div className="page-content">
+          <div className="loading-spinner">
+            <div className="spinner"></div>
+            <p>Loading profile data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container" ref={pageRef}>
@@ -67,6 +129,18 @@ const ProfileSettings = () => {
           <h1 className="page-title">Profile Settings</h1>
           <p className="page-subtitle">Manage your account information and preferences</p>
         </div>
+
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="success-message">
+            {success}
+          </div>
+        )}
 
         <div className="profile-container" ref={formRef}>
           {/* Tabs */}
@@ -97,12 +171,12 @@ const ProfileSettings = () => {
               <form onSubmit={handleSubmit} className="profile-form">
                 <div className="form-grid grid grid-2">
                   <div className="form-group">
-                    <label htmlFor="firstName" className="form-label">First Name</label>
+                    <label htmlFor="name" className="form-label">First Name</label>
                     <input
                       type="text"
-                      id="firstName"
-                      name="firstName"
-                      value={formData.firstName}
+                      id="name"
+                      name="name"
+                      value={formData.name}
                       onChange={handleInputChange}
                       className="form-input input"
                       required
@@ -110,25 +184,12 @@ const ProfileSettings = () => {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="lastName" className="form-label">Last Name</label>
+                    <label htmlFor="surname" className="form-label">Last Name</label>
                     <input
                       type="text"
-                      id="lastName"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      className="form-input input"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="email" className="form-label">Email Address</label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formData.email}
+                      id="surname"
+                      name="surname"
+                      value={formData.surname}
                       onChange={handleInputChange}
                       className="form-input input"
                       required
@@ -144,50 +205,53 @@ const ProfileSettings = () => {
                       value={formData.phone}
                       onChange={handleInputChange}
                       className="form-input input"
+                      required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="location" className="form-label">Location</label>
+                    <label htmlFor="country" className="form-label">Country</label>
                     <input
                       type="text"
-                      id="location"
-                      name="location"
-                      value={formData.location}
+                      id="country"
+                      name="country"
+                      value={formData.country}
                       onChange={handleInputChange}
                       className="form-input input"
+                      required
                     />
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="website" className="form-label">Website</label>
+                    <label htmlFor="city" className="form-label">City</label>
                     <input
-                      type="url"
-                      id="website"
-                      name="website"
-                      value={formData.website}
+                      type="text"
+                      id="city"
+                      name="city"
+                      value={formData.city}
                       onChange={handleInputChange}
                       className="form-input input"
+                      required
                     />
                   </div>
-                </div>
 
-                <div className="form-group">
-                  <label htmlFor="bio" className="form-label">Bio</label>
-                  <textarea
-                    id="bio"
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleInputChange}
-                    className="form-textarea input"
-                    rows="4"
-                    placeholder="Tell us about yourself..."
-                  />
+                  <div className="form-group">
+                    <label htmlFor="address" className="form-label">Address</label>
+                    <input
+                      type="text"
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      className="form-input input"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="form-actions">
-                  <button type="submit" className="btn btn-primary">
-                    Save Changes
+                  <button type="submit" className="btn btn-primary" disabled={saving}>
+                    {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button type="button" className="btn" onClick={() => navigate('/products')}>
                     Cancel
@@ -203,26 +267,50 @@ const ProfileSettings = () => {
               <div className="notifications-section">
                 <h3 className="section-title">Notification Preferences</h3>
                 <div className="notification-options">
-                  {Object.entries(formData.notifications).map(([type, enabled]) => (
-                    <div key={type} className="notification-option card">
-                      <div className="option-info">
-                        <h4 className="option-title">
-                          {type.charAt(0).toUpperCase() + type.slice(1)} Notifications
-                        </h4>
-                        <p className="option-description">
-                          Receive {type} notifications for important updates
-                        </p>
-                      </div>
-                      <label className="toggle-switch">
-                        <input
-                          type="checkbox"
-                          checked={enabled}
-                          onChange={() => handleNotificationChange(type)}
-                        />
-                        <span className="toggle-slider"></span>
-                      </label>
+                  <div className="notification-option card">
+                    <div className="option-info">
+                      <h4 className="option-title">Email Notifications</h4>
+                      <p className="option-description">
+                        Receive email notifications for important updates
+                      </p>
                     </div>
-                  ))}
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={formData.emailNotifications}
+                        onChange={() => handleNotificationChange('emailNotifications')}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div className="notification-option card">
+                    <div className="option-info">
+                      <h4 className="option-title">Plan Reminders</h4>
+                      <p className="option-description">
+                        Get notified about plan expiration and renewals
+                      </p>
+                    </div>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={formData.planReminders}
+                        onChange={() => handleNotificationChange('planReminders')}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-actions">
+                  <button 
+                    type="button" 
+                    className="btn btn-primary" 
+                    onClick={handleSubmit}
+                    disabled={saving}
+                  >
+                    {saving ? 'Saving...' : 'Save Notification Settings'}
+                  </button>
                 </div>
               </div>
             </div>

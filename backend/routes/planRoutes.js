@@ -3,7 +3,7 @@ const router = express.Router();
 const Plan = require('../models/Plan');
 
 // Public: Planları listele
-router.get('/plans', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const plans = await Plan.find();
     res.status(200).json(plans);
