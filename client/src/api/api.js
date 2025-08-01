@@ -39,7 +39,10 @@ export const getCommunityById = async (communityId) => {
 
 // Productları topluluk bazlı getir
 export const getProductsByCommunity = async (communityId) => {
-    const res = await instance.get(`/products?communityId=${communityId}`);
+    // Anonim kullanıcılar için token olmadan istek yap
+    const token = localStorage.getItem("token");
+    const config = token ? {} : { headers: {} };
+    const res = await axios.get(`${process.env.REACT_APP_API_URL || "https://e-commerce-backend-ml1p.onrender.com/api"}/products?communityId=${communityId}`, config);
     return res.data;
 };
 
@@ -99,5 +102,36 @@ export const getSellerProfile = async () => {
 
 export const updateSellerProfile = async (payload) => {
     const res = await instance.put('/sellers/profile', payload);
+    return res.data;
+};
+
+// Favorites API
+export const getUserFavorites = async (userId) => {
+    // userId query parametresi ile API çağrısı
+    const res = await instance.get(`/favorites${userId ? `?userId=${userId}` : ''}`);
+    return res.data;
+};
+
+export const addToFavorites = async (productId, userId) => {
+    // userId body'de gönder
+    const res = await instance.post('/favorites/add', { productId, userId });
+    return res.data;
+};
+
+export const removeFromFavorites = async (productId, userId) => {
+    // userId query parametresi ile API çağrısı
+    const res = await instance.delete(`/favorites/remove/${productId}${userId ? `?userId=${userId}` : ''}`);
+    return res.data;
+};
+
+export const checkFavorite = async (productId, userId) => {
+    // userId query parametresi ile API çağrısı
+    const res = await instance.get(`/favorites/check/${productId}${userId ? `?userId=${userId}` : ''}`);
+    return res.data;
+};
+
+export const getFavoriteCount = async (productId, userId) => {
+    // userId query parametresi ile API çağrısı
+    const res = await instance.get(`/favorites/count/${productId}${userId ? `?userId=${userId}` : ''}`);
     return res.data;
 };

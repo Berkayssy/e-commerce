@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const PasswordInput = ({ name, placeholder, value, onChange, ...rest }) => {
+const PasswordInput = ({ name, placeholder, value, onChange, className, style, ...rest }) => {
   const [show, setShow] = useState(false);
   
   const handleKeyDown = (e) => {
@@ -14,12 +14,14 @@ const PasswordInput = ({ name, placeholder, value, onChange, ...rest }) => {
       <span className="icon">🔒</span>
       <input
         type={show ? 'text' : 'password'}
-        className="login-input"
+        className={`login-input ${className || ''}`}
         name={name}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
         onKeyDown={handleKeyDown}
+        autoComplete={name === 'confirmPassword' ? 'new-password' : 'current-password'}
+        style={style}
         {...rest}
       />
       <button

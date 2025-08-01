@@ -1,4 +1,16 @@
 /* Plan Modal */
+.password-error {
+  border-color: #ff4444 !important;
+  background-color: #fff5f5 !important;
+  box-shadow: 0 0 0 1px #ff4444 !important;
+}
+
+.password-success {
+  border-color: #22c55e !important;
+  background-color: #f0fdf4 !important;
+  box-shadow: 0 0 0 1px #22c55e !important;
+}
+
 .plan-modal-overlay {
   position: fixed;
   top: 0;

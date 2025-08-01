@@ -118,10 +118,12 @@ const Support = () => {
 
   return (
     <div className="support-page" ref={pageRef}>
-      <div className="support-header" ref={headerRef}>
-        <h1>Support Center</h1>
-        <p>Get help with your account and find answers to common questions</p>
-      </div>
+              <div className="support-header" ref={headerRef}>
+          <h1>
+            Support Center
+          </h1>
+          <p>Get help with your account and find answers to common questions</p>
+        </div>
 
       <div className="support-content">
         <div className="faq-section" ref={faqRef}>

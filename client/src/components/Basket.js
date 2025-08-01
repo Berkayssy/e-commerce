@@ -86,10 +86,6 @@ const Basket = () => {
     return (
       <div className="basket-page" ref={pageRef}>
         <div className="basket-content">
-          <div className="basket-header">
-            <h1 className="basket-title gradient-text">🛒 Your Basket</h1>
-            <p className="basket-subtitle">Your shopping cart is empty</p>
-          </div>
           <div className="basket-main">
             <div className="basket-list basket-list-empty">
               <div className="basket-empty-icon" style={{fontSize: '4rem', marginBottom: '1.5rem'}}>🛍️</div>
@@ -120,7 +116,9 @@ const Basket = () => {
     <div className="basket-page" ref={pageRef}>
       <div className="basket-content">
         <div className="basket-header">
-          <h1 className="basket-title gradient-text">🛒 Your Basket</h1>
+          <h1 className="basket-title">
+            🛒 Your Basket
+          </h1>
           <p className="basket-subtitle">Review and manage your items with style!</p>
         </div>
         <div className="basket-main">
@@ -192,7 +190,7 @@ const Basket = () => {
             >
               <span role="img" aria-label="clear">🗑️</span>
             </button>
-            <h3 className="basket-summary-title gradient-text">Order Summary</h3>
+            <h3 className="basket-summary-title">Order Summary</h3>
             <div className="basket-summary-details">
               <div className="basket-summary-row">
                 <span className="basket-summary-label">Items:</span>

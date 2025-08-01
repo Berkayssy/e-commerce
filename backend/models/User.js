@@ -32,7 +32,18 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Community',
         required: false
-    }
+    },
+    favorites: [{
+        product: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Product',
+            required: true
+        },
+        addedAt: {
+            type: Date,
+            default: Date.now
+        }
+    }]
 },{timestamps: true});
 
 module.exports = mongoose.model("User", userSchema);

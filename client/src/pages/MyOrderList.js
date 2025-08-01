@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import axios from 'axios'
-import { useNavigate } from 'react-router'
+import { useNavigate, useParams } from 'react-router-dom'
 import useGsapFadeIn from '../components/common/useGsapFadeIn';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
@@ -8,6 +8,7 @@ import RetryButton from '../components/common/RetryButton';
 import './MyOrderList.css'
 
 export default function MyOrderList() {
+  const { userId } = useParams();
   const [myOrders, setMyOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,7 +60,7 @@ export default function MyOrderList() {
       try {
         setLoading(true);
         setError(null);
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/orders/my?page=${page}&limit=${limit}`, {
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/orders/my?page=${page}&limit=${limit}${userId ? `&userId=${userId}` : ''}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -95,7 +96,7 @@ export default function MyOrderList() {
     };
 
     fetchMyOrders();
-  }, [navigate, page, limit, locations]);
+  }, [navigate, page, limit, locations, userId]);
 
   // GSAP animations
   useGsapFadeIn([pageRef, headerRef, ordersRef], { 
@@ -184,7 +185,9 @@ export default function MyOrderList() {
   return (
     <div className="my-order-list-page" ref={pageRef}>
       <div className="my-order-header" ref={headerRef}>
-        <h1>My Orders</h1>
+        <h1>
+          My Orders
+        </h1>
         <p>Track your order history and current status</p>
       </div>
 

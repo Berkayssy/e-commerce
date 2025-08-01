@@ -3,6 +3,9 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const Community = require("../models/Community");
 const Plan = require('../models/Plan');
+const { adminEmails, isAdminEmail } = require("../config/adminEmails");
+const fs = require('fs');
+const path = require('path');
 
 // Admin dashboard statistics
 exports.getDashboardStats = async (req, res) => {
@@ -120,7 +123,7 @@ exports.getCommunityDetails = async (req, res) => {
 // Tüm toplulukları listele
 exports.getCommunities = async (req, res) => {
     try {
-        const communities = await Community.find().select('name transId _id');
+        const communities = await Community.find().select('name transId _id logo description');
         return res.status(200).json({ communities });
     } catch (err) {
         return res.status(500).json({ message: err.message });
@@ -317,5 +320,187 @@ exports.createNotification = async ({ user, store, type, message, email }) => {
         return notification;
     } catch (err) {
         return null;
+    }
+};
+
+// Admin email listesini getir
+exports.getAdminEmails = async (req, res) => {
+    try {
+        res.status(200).json({
+            adminEmails,
+            count: adminEmails.length
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Yeni admin email ekle
+exports.addAdminEmail = async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: "Email is required" });
+        }
+
+        // Email formatını kontrol et
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: "Invalid email format" });
+        }
+
+        // Email zaten admin listesinde mi kontrol et
+        if (isAdminEmail(email)) {
+            return res.status(400).json({ error: "Email is already in admin list" });
+        }
+
+        // Config dosyasını güncelle
+        const configPath = path.join(__dirname, '../config/adminEmails.js');
+        const configContent = `// Admin email listesi - bu email adresleri otomatik olarak admin olarak atanır
+const adminEmails = [
+    'admin@galeria.com',
+    'berkay@galeria.com',
+    'berkayaksu@gmail.com',
+    'admin@gmail.com',
+    '${email.toLowerCase()}'
+];
+
+// Email'in admin olup olmadığını kontrol eden fonksiyon
+const isAdminEmail = (email) => {
+    return adminEmails.includes(email.toLowerCase());
+};
+
+module.exports = {
+    adminEmails,
+    isAdminEmail
+};`;
+
+        fs.writeFileSync(configPath, configContent);
+
+        // Mevcut kullanıcıyı admin yap
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (user && user.role !== 'admin') {
+            user.role = 'admin';
+            await user.save();
+            console.log(`Updated existing user to admin: ${email}`);
+        }
+
+        res.status(200).json({
+            message: "Admin email added successfully",
+            email: email.toLowerCase()
+        });
+    } catch (error) {
+        console.error('Error adding admin email:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Admin email'i kaldır
+exports.removeAdminEmail = async (req, res) => {
+    try {
+        const { email } = req.params;
+        
+        if (!email) {
+            return res.status(400).json({ error: "Email is required" });
+        }
+
+        // Email admin listesinde mi kontrol et
+        if (!isAdminEmail(email)) {
+            return res.status(400).json({ error: "Email is not in admin list" });
+        }
+
+        // Config dosyasını güncelle (kaldırılacak email'i çıkar)
+        const newAdminEmails = adminEmails.filter(e => e.toLowerCase() !== email.toLowerCase());
+        
+        const configPath = path.join(__dirname, '../config/adminEmails.js');
+        const configContent = `// Admin email listesi - bu email adresleri otomatik olarak admin olarak atanır
+const adminEmails = [
+${newAdminEmails.map(e => `    '${e}'`).join(',\n')}
+];
+
+// Email'in admin olup olmadığını kontrol eden fonksiyon
+const isAdminEmail = (email) => {
+    return adminEmails.includes(email.toLowerCase());
+};
+
+module.exports = {
+    adminEmails,
+    isAdminEmail
+};`;
+
+        fs.writeFileSync(configPath, configContent);
+
+        // Kullanıcının rolünü user'a çevir
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (user && user.role === 'admin') {
+            user.role = 'user';
+            await user.save();
+            console.log(`Updated admin user to regular user: ${email}`);
+        }
+
+        res.status(200).json({
+            message: "Admin email removed successfully",
+            email: email.toLowerCase()
+        });
+    } catch (error) {
+        console.error('Error removing admin email:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Mevcut kullanıcıyı admin yap
+exports.makeUserAdmin = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        user.role = 'admin';
+        await user.save();
+
+        res.status(200).json({
+            message: "User role updated to admin successfully",
+            user: {
+                id: user._id,
+                email: user.email,
+                username: user.username,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error('Error making user admin:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Admin rolünü kaldır
+exports.removeAdminRole = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        user.role = 'user';
+        await user.save();
+
+        res.status(200).json({
+            message: "Admin role removed successfully",
+            user: {
+                id: user._id,
+                email: user.email,
+                username: user.username,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error('Error removing admin role:', error);
+        res.status(500).json({ error: error.message });
     }
 };

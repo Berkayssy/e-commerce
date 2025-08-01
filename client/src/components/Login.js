@@ -21,7 +21,13 @@ const Login = () => {
 
     useEffect(() => {
         if (token) {
-            navigate('/dashboard');
+            // Check user role and redirect accordingly
+            const userRole = localStorage.getItem('role');
+            if (userRole === 'seller') {
+                navigate('/dashboard');
+            } else {
+                navigate('/communities');
+            }
         }
     }, [token, navigate]);
 
@@ -45,7 +51,13 @@ const Login = () => {
 
         try {
             await login(form);
-            navigate("/products");
+            // Check user role and redirect accordingly
+            const userRole = localStorage.getItem('role');
+            if (userRole === 'seller') {
+                navigate('/dashboard');
+            } else {
+                navigate('/communities');
+            }
         } catch (err) {
             console.error(err.response?.data || err.message);
             setError(err.response?.data || { error: "Login failed" });
@@ -101,7 +113,13 @@ const Login = () => {
                         
                         popup.close();
                         window.removeEventListener('message', messageHandler);
-                        navigate("/products");
+                        // Check user role and redirect accordingly
+                        const userRole = localStorage.getItem('role');
+                        if (userRole === 'seller') {
+                            navigate('/dashboard');
+                        } else {
+                            navigate('/communities');
+                        }
                     } catch (err) {
                         console.error('Backend login error:', err);
                         setError("Login failed. Please try again.");

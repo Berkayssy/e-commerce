@@ -148,7 +148,9 @@ const Notifications = () => {
   return (
     <div className="notifications-page" ref={pageRef}>
       <div className="notifications-header" ref={headerRef}>
-        <h1>Notifications</h1>
+        <h1>
+          Notifications
+        </h1>
         <p>Stay updated with your account activity and important alerts</p>
         {unreadCount > 0 && (
           <div className="unread-badge">

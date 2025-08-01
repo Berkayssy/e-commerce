@@ -12,6 +12,9 @@ const multer = require('multer');
 router.get("/", productController.getAllProducts);
 router.get("/:id", productController.getProductById);
 
+// Global search endpoint
+router.get("/search/global", productController.globalSearch);
+
 // Public: Planları listele
 router.get('/plans', async (req, res) => {
   try {

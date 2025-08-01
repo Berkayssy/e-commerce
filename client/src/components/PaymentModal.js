@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import InputGroup from './common/InputGroup';
 import PasswordInput from './common/PasswordInput';
 import ErrorMessage from './common/ErrorMessage';
 import LoadingSpinner from './common/LoadingSpinner';
 import { useNavigate } from 'react-router-dom';
-import { registerSeller } from '../api/api';
+import { createSubscriptionAndRegister } from '../api/api';
 import './PlanModal.css';
 
 Modal.setAppElement('#root');
@@ -32,19 +32,51 @@ const PaymentModal = ({ isOpen, onClose, plan }) => {
   const [loading, setLoading] = useState(false);
   const [passwordMatch, setPasswordMatch] = useState(true);
 
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setForm({
+        name: '',
+        surname: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        phone: '',
+        country: '',
+        city: '',
+        address: ''
+      });
+      setCard({
+        number: '',
+        expiry: '',
+        cvv: ''
+      });
+      setError('');
+      setLoading(false);
+      setPasswordMatch(true);
+    }
+  }, [isOpen]);
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    const newForm = { ...form, [name]: value };
+    setForm(newForm);
     if (error) setError('');
     
-    // Real-time password matching validation
-    if (e.target.name === 'password' || e.target.name === 'confirmPassword') {
-      if (form.password && form.confirmPassword) {
-        setPasswordMatch(form.password === form.confirmPassword);
+    // Immediate password validation
+    if (name === 'password' || name === 'confirmPassword') {
+      const newPassword = name === 'password' ? value : newForm.password;
+      const newConfirmPassword = name === 'confirmPassword' ? value : newForm.confirmPassword;
+      
+      if (newPassword && newConfirmPassword) {
+        setPasswordMatch(newPassword === newConfirmPassword);
       } else {
         setPasswordMatch(true);
       }
     }
   };
+
+
 
   // Kart numarası otomatik formatlama (4'lü gruplar, tire ile)
   const formatCardNumber = (value) => {
@@ -85,7 +117,15 @@ const PaymentModal = ({ isOpen, onClose, plan }) => {
       return;
     }
     
+    // Check if passwords match
     if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match.');
+      setPasswordMatch(false);
+      return;
+    }
+    
+    // Double check passwordMatch state
+    if (!passwordMatch) {
       setError('Passwords do not match.');
       return;
     }
@@ -105,51 +145,49 @@ const PaymentModal = ({ isOpen, onClose, plan }) => {
 
     try {
       const payload = {
-        name: form.name,
-        surname: form.surname,
+        username: `${form.name} ${form.surname}`,
         email: form.email,
         password: form.password,
+        storeName: `${form.name}'s Store`,
         phone: form.phone,
         country: form.country,
         city: form.city,
         address: form.address,
-        planId: plan._id || plan.id,
+        plan: plan._id || plan.id,
         cardNumber: card.number,
         cardExpiry: card.expiry,
         cardCvv: card.cvv,
-        billingAddress: form.address // Use same address for billing
+        role: 'seller'
       };
 
-      const response = await registerSeller(payload);
+      const response = await createSubscriptionAndRegister(payload);
 
       // Store authentication data
       if (response.token) {
         localStorage.setItem('token', response.token);
       }
       
-      if (response.user && response.user.id) {
-        localStorage.setItem('userId', response.user.id);
+      if (response.sellerId) {
+        localStorage.setItem('sellerId', response.sellerId);
       }
       
-      if (response.seller && response.seller.id) {
-        localStorage.setItem('sellerId', response.seller.id);
+      if (response.planId) {
+        localStorage.setItem('selectedPlanId', response.planId);
       }
       
-      if (response.seller && response.seller.planId) {
-        localStorage.setItem('selectedPlanId', response.seller.planId);
+      if (response.storeId) {
+        localStorage.setItem('storeId', response.storeId);
+        localStorage.setItem('sellerCommunityId', response.storeId);
       }
+      
+      // Set role for seller
+      localStorage.setItem('role', 'seller');
 
       setLoading(false);
       onClose();
 
-      // Navigate based on seller status
-      if (response.seller && response.seller.status === 'active') {
-        navigate('/onboarding'); // Go to store creation
-      } else if (response.seller && response.seller.status === 'pending') {
-        navigate('/dashboard'); // Go to dashboard for pending verification
-      } else {
-        navigate('/'); // Fallback to home
-      }
+      // Navigate to onboarding after successful registration
+      navigate('/onboarding');
 
     } catch (err) {
       setLoading(false);
@@ -224,15 +262,28 @@ const PaymentModal = ({ isOpen, onClose, plan }) => {
                 onChange={handleChange}
                 required
                 style={{
-                  borderColor: form.confirmPassword && !passwordMatch ? '#ff4444' : undefined,
-                  backgroundColor: form.confirmPassword && !passwordMatch ? '#fff5f5' : undefined
+                  borderColor: form.confirmPassword && !passwordMatch ? '#ef4444' : undefined,
+                  backgroundColor: form.confirmPassword && !passwordMatch ? 'rgba(239, 68, 68, 0.1)' : undefined,
+                  boxShadow: form.confirmPassword && !passwordMatch ? '0 0 0 1px #ef4444' : undefined,
+                  transition: 'all 0.2s ease'
                 }}
               />
               {form.confirmPassword && !passwordMatch && (
-                <div style={{ color: '#ff4444', fontSize: '12px', marginTop: '-8px', marginBottom: '8px' }}>
+                <div style={{ 
+                  color: '#ef4444', 
+                  fontSize: '12px', 
+                  marginTop: '-8px', 
+                  marginBottom: '8px', 
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <span>⚠️</span>
                   Passwords do not match
                 </div>
               )}
+
               <InputGroup
                 icon="📞"
                 name="phone"

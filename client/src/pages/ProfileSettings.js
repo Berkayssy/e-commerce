@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import './ProfileSettings.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getSellerProfile, updateSellerProfile } from '../api/api';
 
 const ProfileSettings = () => {
+  const { userId } = useParams();
   const pageRef = useRef(null);
   const formRef = useRef(null);
   const [activeTab, setActiveTab] = useState('profile');
@@ -37,7 +38,7 @@ const ProfileSettings = () => {
 
     // Fetch seller profile data
     fetchSellerProfile();
-  }, []);
+  }, [userId]);
 
   const fetchSellerProfile = async () => {
     try {
@@ -126,7 +127,9 @@ const ProfileSettings = () => {
     <div className="page-container" ref={pageRef}>
       <div className="page-content">
         <div className="page-header">
-          <h1 className="page-title">Profile Settings</h1>
+          <h1 className="page-title">
+            Profile Settings
+          </h1>
           <p className="page-subtitle">Manage your account information and preferences</p>
         </div>
 

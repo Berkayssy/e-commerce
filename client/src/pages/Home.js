@@ -144,7 +144,7 @@ function HeroSection() {
           style={{ boxShadow: '0 0 0 0 #f7c873', transition: 'box-shadow 0.22s', fontWeight: 700, marginRight: '0.5rem' }}
           onMouseOver={e => e.currentTarget.style.boxShadow = '0 0 16px 2px #f7c87388'}
           onMouseOut={e => e.currentTarget.style.boxShadow = '0 0 0 0 #f7c873'}
-          onClick={() => navigate('/login')}
+          onClick={() => navigate('/communities')}
         >
           Explore Stores
         </button>

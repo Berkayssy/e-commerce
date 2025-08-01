@@ -203,7 +203,7 @@
   height: 100%;
   opacity: 0;
   cursor: pointer;
-  z-index: 2;
+  z-index: 3;
 }
 
 .file-input-text {
@@ -217,6 +217,12 @@
   gap: 0.5rem;
   z-index: 1;
   pointer-events: none;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 .file-input-text::before {
   content: '📁';

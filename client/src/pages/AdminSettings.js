@@ -417,7 +417,7 @@ const AdminSettings = () => {
     <div className="admin-settings-page" ref={pageRef}>
       <div className="admin-settings-container">
         <div className="admin-settings-header">
-          <h1 className="admin-settings-title">Admin Settings</h1>
+          <h1 className="admin-settings-title">{role === 'seller' ? 'Seller Settings' : 'Admin Settings'}</h1>
           <p className="admin-settings-subtitle">Configure your platform settings and preferences</p>
         </div>
 
@@ -447,12 +447,14 @@ const AdminSettings = () => {
           >
             Analytics
           </button>
-          <button 
-            className={`tab-btn ${activeTab === 'community' ? 'active' : ''}`}
-            onClick={() => setActiveTab('community')}
-          >
-            Community Management
-          </button>
+          {role === 'admin' && (
+            <button 
+              className={`tab-btn ${activeTab === 'community' ? 'active' : ''}`}
+              onClick={() => setActiveTab('community')}
+            >
+              Community Management
+            </button>
+          )}
         </div>
 
         {/* Settings Content */}
@@ -461,7 +463,7 @@ const AdminSettings = () => {
           {activeTab === 'security' && renderSecuritySettings()}
           {activeTab === 'files' && renderFileSettings()}
           {activeTab === 'analytics' && renderAnalyticsSettings()}
-          {activeTab === 'community' && renderCommunityManagement()}
+          {activeTab === 'community' && role === 'admin' && renderCommunityManagement()}
         </div>
 
         {/* Save Button */}

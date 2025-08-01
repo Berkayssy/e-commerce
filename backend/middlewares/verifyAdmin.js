@@ -4,12 +4,13 @@ const verifyAdmin = async (req, res, next) => {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ error: 'Unauthorized: User is not an admin' });
     }
-    // Admin sadece kendi mağazasına erişebilmeli
+    // Admin kullanıcısını kontrol et
     const user = await User.findById(req.user.id);
-    if (!user || !user.storeId) {
-        return res.status(403).json({ error: 'Unauthorized: No store assigned' });
+    if (!user) {
+        return res.status(403).json({ error: 'Unauthorized: User not found' });
     }
-    req.storeId = user.storeId;
+    // storeId varsa req'e ekle, yoksa null olarak bırak
+    req.storeId = user.storeId || null;
     next();
 };
 

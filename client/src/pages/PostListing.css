@@ -656,8 +656,8 @@
 /* Print Styles */
 @media print {
   .post-listing-page {
-    background: white;
-    color: black;
+    background: #101624;
+    color: #e2e8f0;
   }
   
   .form-actions,

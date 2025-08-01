@@ -1,6 +1,6 @@
 .assign-admin-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--page-background, #181c2a);
   padding: 2rem;
   display: flex;
   align-items: center;
@@ -8,14 +8,14 @@
 }
 
 .assign-admin-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(12, 11, 20, 0.98);
   backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 2.5rem;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   max-width: 500px;
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(129, 140, 248, 0.2);
 }
 
 .assign-admin-header {
@@ -32,31 +32,31 @@
 .assign-admin-header h2 {
   font-size: 2rem;
   font-weight: 700;
-  color: #1a202c;
+  color: #fff;
   margin-bottom: 0.5rem;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #818cf8 0%, #c084fc 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .assign-admin-header p {
-  color: #718096;
+  color: #cbd5e1;
   font-size: 1.1rem;
   margin-bottom: 1rem;
 }
 
 .community-info {
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(129, 140, 248, 0.1);
   padding: 0.75rem 1rem;
   border-radius: 10px;
-  border: 1px solid rgba(102, 126, 234, 0.2);
+  border: 1px solid rgba(129, 140, 248, 0.2);
   font-size: 0.9rem;
-  color: #4a5568;
+  color: #cbd5e1;
 }
 
 .community-info strong {
-  color: #667eea;
+  color: #818cf8;
   font-weight: 600;
 }
 
@@ -70,7 +70,7 @@
 
 .assign-admin-btn {
   width: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #818cf8 0%, #c084fc 100%);
   color: white;
   border: none;
   padding: 1rem 2rem;
@@ -88,7 +88,7 @@
 
 .assign-admin-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 20px rgba(129, 140, 248, 0.3);
 }
 
 .assign-admin-btn:disabled {

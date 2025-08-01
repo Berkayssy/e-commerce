@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 // Nav
 import Navbar from './components/Navbar';
 import ProductList from './pages/ProductList';
@@ -39,8 +39,6 @@ import { BasketProvider } from '../src/contexts/BasketContext';
 import { OrderProvider } from '../src/contexts/OrderContext';
 import { SearchProvider } from '../src/contexts/SearchContext';
 
-import { useAuth } from '../src/contexts/AuthContext';
-
 //CSS
 import './styles/global.css';
 
@@ -48,13 +46,25 @@ import EditProduct from './pages/EditProduct';
 import SellerOnboarding from './components/SellerOnboarding';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import PostListing from './pages/PostListing';
+import Favorites from './pages/Favorites';
+import UserSettings from './pages/UserSettings';
+import RoleProtectedRoute from './components/RoleProtectedRoute';
+import GlobalSearch from './pages/GlobalSearch';
+
+// NavbarWrapper component to conditionally render navbar
+function NavbarWrapper() {
+  const location = useLocation();
+  
+  // Hide navbar on plan selection page
+  const shouldShowNavbar = !location.pathname.startsWith('/plans');
+  
+  return shouldShowNavbar ? <Navbar /> : null;
+}
 
 function AppContent() {
-  const { token } = useAuth();
-
   return (
     <Router>
-      {token && <Navbar />}
+      <NavbarWrapper />
       <Routes>
         <Route exact path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -63,27 +73,46 @@ function AppContent() {
         <Route path="/products" element={<ProductList />} />
         <Route path="/add-product" element={<ProtectedRoute><AddProduct /></ProtectedRoute>} />
         <Route path="/order" element={<Order />} />
-        <Route path="/my" element={<MyOrderList />} />
-        <Route path="/basket" element={<Basket />} />
-        <Route path="/products/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>}/>
+        <Route path="/products/:id" element={<ProductDetail />}/>
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/plans" element={<PlanSelection />} />
         <Route path="/plans/:planId" element={<PlanDetail />} />
         
-        {/* New Routes */}
-        <Route path="/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
-        <Route path="/billing" element={<ProtectedRoute><BillingPlans /></ProtectedRoute>} />
-        <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        {/* Communities Route */}
         <Route path="/communities" element={<CommunityList />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/assign-admin" element={<ProtectedRoute><AssignAdmin /></ProtectedRoute>} />
         
-        {/* Admin Routes */}
-        <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-        <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+        {/* Global Search Route */}
+        <Route path="/search" element={<GlobalSearch />} />
+        
+        {/* User ID Based Routes - All user navigation should use this pattern */}
+        <Route path="/user/:userId/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
+        <Route path="/user/:userId/billing" element={<ProtectedRoute><BillingPlans /></ProtectedRoute>} />
+        <Route path="/user/:userId/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+        <Route path="/user/:userId/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        <Route path="/user/:userId/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+        <Route path="/user/:userId/settings" element={<ProtectedRoute><UserSettings /></ProtectedRoute>} />
+        <Route path="/user/:userId/orders" element={<ProtectedRoute><MyOrderList /></ProtectedRoute>} />
+        <Route path="/user/:userId/basket" element={<ProtectedRoute><Basket /></ProtectedRoute>} />
+        
+        {/* Billing Routes */}
+        <Route path="/billing" element={<ProtectedRoute><BillingPlans /></ProtectedRoute>} />
+        
+        {/* Support Routes */}
+        <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
+        
+        {/* Profile Routes */}
+        <Route path="/profile" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
+        
+        {/* Notifications Routes */}
+        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        
+        {/* Admin/Seller Routes */}
+        <Route path="/analytics" element={<RoleProtectedRoute allowedRoles={['admin', 'seller']}><Analytics /></RoleProtectedRoute>} />
+        <Route path="/users" element={<RoleProtectedRoute allowedRoles={['admin', 'seller']}><UserManagement /></RoleProtectedRoute>} />
+        <Route path="/settings" element={<RoleProtectedRoute allowedRoles={['admin', 'seller']}><AdminSettings /></RoleProtectedRoute>} />
         
         <Route path="/edit-product/:id" element={<EditProduct />} />
         <Route path="/onboarding" element={<SellerOnboarding />} />

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./ProductList.css";
@@ -10,12 +10,27 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 import { getProductsByCommunity } from '../api/api';
 import { useAuth } from '../contexts/AuthContext';
+import LoginModal from '../components/LoginModal';
 
 // Ensure that react-modal is properly configured
-// If you already have it in index.js or App.js, you can remove it from here.
 Modal.setAppElement('#root'); 
 
 const ProductList = () => {
+  // Get userId from token if available
+  const getUserId = () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.id;
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  };
+  const userId = getUserId();
+  
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,25 +39,59 @@ const ProductList = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   
+  // Sidebar and layout states
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [viewMode, setViewMode] = useState('grid'); // grid, list
+  const [sortBy, setSortBy] = useState('name'); // name, price, newest, popular
+  
   // Filter states
-  const [priceRange] = useState({ min: 0, max: 1000000 });
-  const [selectedBrand] = useState('All Brands');
-  const [stockFilter] = useState('All');
-  const [showFilters, setShowFilters] = useState(false);
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 1000000 });
+  const [selectedBrand, setSelectedBrand] = useState('All Brands');
+  const [stockFilter, setStockFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Collapsible sections states
+  const [collapsedSections, setCollapsedSections] = useState({
+    nav: false,
+    categories: false,
+    brands: false,
+    price: false,
+    stock: false,
+    stats: false
+  });
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [loginModalFeature, setLoginModalFeature] = useState('');
 
   const isAdmin = localStorage.getItem("role") === "admin";
-  const isUser = localStorage.getItem("role") === "user";
   const isSeller = localStorage.getItem("role") === "seller";
   const { basket } = useBasket();
   const effectiveBasket = isAdmin ? [] : basket;
-  const { searchTerm, selectedCategory } = useSearch();
+  const { searchTerm, selectedCategory, setSelectedCategory } = useSearch();
   const navigate = useNavigate();
   const pageRef = useRef(null);
   const location = useLocation();
-  const { token } = useAuth();
+  const { token, user, role } = useAuth();
   const [communityOwnerId, setCommunityOwnerId] = useState(null);
   const [communityName, setCommunityName] = useState('');
   const [communityLogo, setCommunityLogo] = useState(null);
+
+  // Refs for stable references
+  const sidebarOpenRef = useRef(sidebarOpen);
+  const viewModeRef = useRef(viewMode);
+  const sortByRef = useRef(sortBy);
+
+  // Update refs when state changes
+  useEffect(() => {
+    sidebarOpenRef.current = sidebarOpen;
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+  }, [viewMode]);
+
+  useEffect(() => {
+    sortByRef.current = sortBy;
+  }, [sortBy]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -92,9 +141,10 @@ const ProductList = () => {
             setCommunityLogo(res.community.logoUrl || null);
           }
         } else {
-          const res = await axios.get(`${process.env.REACT_APP_API_URL}/products`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-          });
+          // Anonim kullanıcılar için token olmadan istek yap
+          const token = localStorage.getItem("token");
+          const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+          const res = await axios.get(`${process.env.REACT_APP_API_URL}/products`, config);
           productsData = res.data.products;
         }
         
@@ -162,6 +212,36 @@ const ProductList = () => {
     delay: 0.1 
   });
 
+  // Handlers
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarOpen(prev => !prev);
+  }, []);
+
+  const handleViewModeChange = useCallback((mode) => {
+    setViewMode(mode);
+  }, []);
+
+  const handleSortChange = useCallback((e) => {
+    setSortBy(e.target.value);
+  }, []);
+
+
+
+  const handleClearFilters = useCallback(() => {
+    setSelectedCategory('All Categories');
+    setSelectedBrand('All Brands');
+    setStockFilter('All');
+    setPriceRange({ min: 0, max: 1000000 });
+    setSearchQuery('');
+  }, [setSelectedCategory, setSelectedBrand, setStockFilter, setPriceRange, setSearchQuery]);
+
+  const handleToggleSection = useCallback((section) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  }, []);
+
   const handleDelete = async (id) => {
     try {
       setError(null);
@@ -198,25 +278,46 @@ const ProductList = () => {
     );
   };
 
-  // Filtered products with all filters
-  const filteredProducts = products.filter((p) => {
-    const nameMatch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const categoryMatch = selectedCategory === 'All Categories' || (p.category && p.category === selectedCategory);
-    const priceMatch = p.price >= priceRange.min && p.price <= priceRange.max;
-    const brandMatch = selectedBrand === 'All Brands' || (p.brand || 'Generic') === selectedBrand;
-    const stockMatch = stockFilter === 'All' || 
-      (stockFilter === 'In Stock' && p.stock > 0) || 
-      (stockFilter === 'Out of Stock' && p.stock === 0);
-    
-    return nameMatch && categoryMatch && priceMatch && brandMatch && stockMatch;
-  });
+  // Filtered and sorted products
+  const filteredProducts = useMemo(() => {
+    let filtered = products.filter((p) => {
+      const nameMatch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                       p.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const categoryMatch = selectedCategory === 'All Categories' || (p.category && p.category === selectedCategory);
+      const priceMatch = p.price >= priceRange.min && p.price <= priceRange.max;
+      const brandMatch = selectedBrand === 'All Brands' || (p.brand || 'Generic') === selectedBrand;
+      const stockMatch = stockFilter === 'All' || 
+        (stockFilter === 'In Stock' && p.stock > 0) || 
+        (stockFilter === 'Out of Stock' && p.stock === 0);
+      
+      return nameMatch && categoryMatch && priceMatch && brandMatch && stockMatch;
+    });
+
+    // Sort products
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'price':
+          return a.price - b.price;
+        case 'newest':
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        case 'popular':
+          return (b.stock || 0) - (a.stock || 0);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [products, searchQuery, searchTerm, selectedCategory, priceRange, selectedBrand, stockFilter, sortBy]);
 
   // Kullanıcı mağaza sahibi mi?
   let isStoreOwner = false;
   try {
     if (communityOwnerId && token) {
-      const userId = JSON.parse(atob(token.split('.')[1])).id;
-      isStoreOwner = communityOwnerId === userId;
+      const tokenUserId = JSON.parse(atob(token.split('.')[1])).id;
+      isStoreOwner = communityOwnerId === tokenUserId;
     }
     // Seller ise ve kendi community'sindeyse store owner olarak kabul et
     if (isSeller && communityOwnerId) {
@@ -228,184 +329,650 @@ const ProductList = () => {
     }
   } catch (e) {}
 
-  // Debug için console.log
-  console.log('Debug ProductList:', {
-    isSeller,
-    isAdmin,
-    isStoreOwner,
-    communityOwnerId,
-    role: localStorage.getItem('role')
-  });
+  // Categories for filter - grouped by type
+  const categoryGroups = [
+    {
+      title: '🚗 Passenger Vehicles',
+      categories: [
+        { id: 'Luxury Car', name: 'Luxury Cars', icon: '💎' },
+        { id: 'Sport Car', name: 'Sport Cars', icon: '🏎️' },
+        { id: 'Classic Car', name: 'Classic Cars', icon: '🕰️' },
+        { id: 'Hyper Car', name: 'Hyper Cars', icon: '🚀' },
+        { id: 'Super Car', name: 'Super Cars', icon: '⚡' },
+        { id: 'Exotic Car', name: 'Exotic Cars', icon: '🌟' },
+        { id: 'Muscle Car', name: 'Muscle Cars', icon: '💪' },
+        { id: 'Tuner Car', name: 'Tuner Cars', icon: '🔧' },
+        { id: 'SUV', name: 'SUV', icon: '🚙' },
+      ]
+    },
+    {
+      title: '🏁 Performance & Racing',
+      categories: [
+        { id: 'Rally Car', name: 'Rally Cars', icon: '🏁' },
+        { id: 'Drift Car', name: 'Drift Cars', icon: '🌀' },
+        { id: 'Drag Car', name: 'Drag Cars', icon: '🏃' },
+        { id: 'Off-Road', name: 'Off-Road', icon: '🏔️' },
+      ]
+    },
+    {
+      title: '🚛 Commercial & Industrial',
+      categories: [
+        { id: 'Pickup Truck', name: 'Pickup Trucks', icon: '🚛' },
+        { id: 'Commercial', name: 'Commercial', icon: '🚚' },
+        { id: 'Construction', name: 'Construction', icon: '🏗️' },
+        { id: 'Agricultural', name: 'Agricultural', icon: '🚜' },
+        { id: 'Mining', name: 'Mining', icon: '⛏️' },
+        { id: 'Forestry', name: 'Forestry', icon: '🌲' },
+      ]
+    },
+    {
+      title: '🏍️ Two-Wheelers',
+      categories: [
+        { id: 'Motorcycle', name: 'Motorcycles', icon: '🏍️' },
+        { id: 'Scooter', name: 'Scooters', icon: '🛵' },
+        { id: 'ATV/UTV', name: 'ATV/UTV', icon: '🏎️' },
+        { id: 'Snowmobile', name: 'Snowmobiles', icon: '❄️' },
+      ]
+    },
+    {
+      title: '🛥️ Marine & Aviation',
+      categories: [
+        { id: 'Marine', name: 'Marine', icon: '🛥️' },
+        { id: 'Aviation', name: 'Aviation', icon: '✈️' },
+        { id: 'Boat', name: 'Boats', icon: '🚤' },
+        { id: 'Yacht', name: 'Yachts', icon: '🛥️' },
+      ]
+    },
+    {
+      title: '🔧 Parts & Services',
+      categories: [
+        { id: 'Parts & Accessories', name: 'Parts & Accessories', icon: '🔧' },
+        { id: 'Tools & Equipment', name: 'Tools & Equipment', icon: '🛠️' },
+        { id: 'Services', name: 'Services', icon: '🔧' },
+      ]
+    }
+  ];
+
+  // Flatten categories for filtering
+  const categories = [
+    { id: 'All Categories', name: 'All Categories', icon: '🏪' },
+    ...categoryGroups.flatMap(group => group.categories)
+  ];
+
+  // Brands for filter
+  const brands = [
+    { id: 'All Brands', name: 'All Brands', icon: '🏷️' },
+    { id: 'Mercedes', name: 'Mercedes', icon: '⭐' },
+    { id: 'BMW', name: 'BMW', icon: '⭐' },
+    { id: 'Ferrari', name: 'Ferrari', icon: '🏎️' },
+    { id: 'Porsche', name: 'Porsche', icon: '🏎️' },
+    { id: 'Audi', name: 'Audi', icon: '⭐' },
+  ];
 
   if (!loading && products.length === 0 && isStoreOwner) {
     return (
-      <div className="onboarding-welcome" style={{
-        textAlign: 'center',
-        marginTop: 60,
-        background: 'rgba(20,22,40,0.92)',
-        borderRadius: 18,
-        boxShadow: '0 6px 32px #818cf822, 0 1.5px 0 #c084fc33',
-        padding: '44px 28px 36px 28px',
-        maxWidth: 480,
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        border: '2.5px solid',
-        borderImage: 'linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%) 1',
-        position: 'relative',
-      }}>
-        <div style={{marginBottom: 18, display: 'flex', justifyContent: 'center'}}>
-          {communityLogo ? (
-            <img src={communityLogo} alt="Store Logo" style={{width: 54, height: 54, borderRadius: 12, boxShadow: '0 2px 12px #c084fc33', objectFit: 'cover', background: '#fff'}} />
-          ) : (
-            <svg viewBox="0 0 32 32" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="diamondWelcome" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#f7c873" />
-                  <stop offset="0.5" stopColor="#c084fc" />
-                  <stop offset="1" stopColor="#818cf8" />
-                </linearGradient>
-              </defs>
-              <polygon points="16,4 28,12 16,28 4,12" fill="url(#diamondWelcome)" stroke="#fff" strokeWidth="1.2" />
-              <polygon points="16,8 24,13 16,24 8,13" fill="#fff" fillOpacity="0.18" />
-            </svg>
-          )}
+      <div className="product-list-page">
+        <div className="onboarding-welcome">
+          <div className="welcome-logo">
+            {communityLogo ? (
+              <img src={communityLogo} alt="Store Logo" />
+            ) : (
+              <svg viewBox="0 0 32 32" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="diamondWelcome" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#f7c873" />
+                    <stop offset="0.5" stopColor="#c084fc" />
+                    <stop offset="1" stopColor="#818cf8" />
+                  </linearGradient>
+                </defs>
+                <polygon points="16,4 28,12 16,28 4,12" fill="url(#diamondWelcome)" stroke="#fff" strokeWidth="1.2" />
+                <polygon points="16,8 24,13 16,24 8,13" fill="#fff" fillOpacity="0.18" />
+              </svg>
+            )}
+          </div>
+          <h2 className="welcome-title">Welcome, {communityName}!</h2>
+          <p className="welcome-subtitle">
+            Your store is ready. Add your first product now to start selling.
+          </p>
+          <button 
+            className="welcome-btn"
+            onClick={() => navigate(`/add-product?communityId=${new URLSearchParams(location.search).get('communityId')}`)}
+          >
+            Add Your First Product
+          </button>
         </div>
-        <h2 style={{
-          fontWeight: 900,
-          fontSize: '2.25rem',
-          background: 'linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          letterSpacing: '-0.01em',
-          marginBottom: 10,
-          textShadow: '0 2px 16px #c084fc22, 0 1px 0 #fff2',
-        }}>Welcome, {communityName}!</h2>
-        <p style={{
-          color: '#cbd5e1',
-          fontSize: '1.13rem',
-          marginBottom: 28,
-          fontWeight: 500,
-          letterSpacing: '-0.01em',
-          textShadow: '0 1px 0 #fff1',
-        }}>
-          Your store is ready. Add your first product now to start selling.
-        </p>
-        <button className="luxury-btn" style={{
-          marginTop: 8,
-          padding: '12px 32px',
-          fontSize: 18,
-          boxShadow: '0 0 16px 2px #c084fc44, 0 2px 12px #818cf822',
-          borderRadius: 10,
-          border: 'none',
-          fontWeight: 700,
-          letterSpacing: '-0.01em',
-          background: 'linear-gradient(90deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)',
-          color: '#fff',
-          transition: 'box-shadow 0.18s',
-        }} onClick={() => navigate(`/add-product?communityId=${new URLSearchParams(location.search).get('communityId')}`)}>
-          Add Your First Product
-        </button>
       </div>
     );
   }
 
   if (loading) {
-    return <LoadingSpinner message="Loading products..." />;
+    return (
+      <div className="product-list-page">
+        <div className="product-loading-container">
+          <LoadingSpinner />
+          <div className="product-loading-text">Loading products...</div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="product-error-container">
-        <ErrorMessage error={error} />
+      <div className="product-list-page">
+        <div className="product-error-container">
+          <ErrorMessage error={error} />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="product-list-page" ref={pageRef}>
-      {/* Filter Toggle Button for Mobile */}
-      {isUser && (
-        <div className="filter-toggle-container">
-          <button 
-            className="filter-toggle-btn"
-            onClick={() => setShowFilters(!showFilters)}
+      <div className="product-container">
+        
+        {/* Sidebar Toggle Button - Only for users and visitors */}
+        {(role === 'user' || !role) && (
+          <button
+            className={`sidebar-toggle-btn ${!sidebarOpen ? 'collapsed' : ''}`}
+            onClick={handleToggleSidebar}
+            aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
           >
-            <span role="img" aria-label="filter">🔍</span>
-            Filters {showFilters ? '−' : '+'}
+            {sidebarOpen ? '◀' : '▶'}
           </button>
-        </div>
-      )}
+        )}
+        
+        {/* Sidebar - Only for users and visitors */}
+        {(role === 'user' || !role) && (
+          <div className={`product-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
+          <div className="sidebar-content">
+            
+            {/* Store Info Section */}
+            <div className="store-section">
+              <div className="store-logo">
+                {communityLogo ? (
+                  <img src={communityLogo} alt="Store Logo" className="store-logo-img" />
+                ) : (
+                  <svg viewBox="0 0 32 32" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg" className="store-logo-svg">
+                    <defs>
+                      <linearGradient id="diamondSidebar" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#f7c873" />
+                        <stop offset="0.5" stopColor="#c084fc" />
+                        <stop offset="1" stopColor="#818cf8" />
+                      </linearGradient>
+                    </defs>
+                    <polygon points="16,4 28,12 16,28 4,12" fill="url(#diamondSidebar)" stroke="#fff" strokeWidth="1.2" />
+                    <polygon points="16,8 24,13 16,24 8,13" fill="#fff" fillOpacity="0.18" />
+                  </svg>
+                )}
+              </div>
+              <div className="store-info">
+                <div className="store-name">{communityName || 'Store'}</div>
+                <div className="store-status">
+                  {isStoreOwner ? 'Owner' : 'Seller'}
+                </div>
+              </div>
+            </div>
 
-      <div className="product-list-container">
-        {/* Filters Sidebar (only for users) */}
-        {isUser && (
-          <div className="filters-sidebar" style={{alignItems: 'center', textAlign: 'center', gap: 18}}>
-            {/* Mağaza adı ve logo en üstte */}
-            {communityLogo ? (
-              <img src={communityLogo} alt="Store Logo" style={{width: 54, height: 54, borderRadius: 12, boxShadow: '0 2px 12px #c084fc33', objectFit: 'cover', background: '#fff', marginBottom: 8, marginTop: 2}} />
-            ) : (
-              <svg viewBox="0 0 32 32" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginBottom: 8, marginTop: 2}}>
-                <defs>
-                  <linearGradient id="diamondSidebar" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#f7c873" />
-                    <stop offset="0.5" stopColor="#c084fc" />
-                    <stop offset="1" stopColor="#818cf8" />
-                  </linearGradient>
-                </defs>
-                <polygon points="16,4 28,12 16,28 4,12" fill="url(#diamondSidebar)" stroke="#fff" strokeWidth="1.2" />
-                <polygon points="16,8 24,13 16,24 8,13" fill="#fff" fillOpacity="0.18" />
-              </svg>
-            )}
-            <div style={{fontWeight: 900, fontSize: '1.18rem', background: 'linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', letterSpacing: '-0.01em', marginBottom: 8}}>{communityName || 'Your Store'}</div>
+            {/* Navigation Section */}
+            <div className={`nav-section ${collapsedSections.nav ? 'collapsed' : ''}`}>
+              <h4 onClick={() => handleToggleSection('nav')}>Navigation</h4>
+              
+              <div 
+                className="nav-item"
+                onClick={() => navigate('/')}
+                onKeyDown={(e) => e.key === 'Enter' && navigate('/')}
+                tabIndex={0}
+                role="button"
+                aria-label="Go to home page"
+              >
+                <span className="nav-item-icon">🏠</span>
+                <span className="nav-item-text">Home</span>
+              </div>
+              
+              <div 
+                className="nav-item"
+                onClick={() => navigate('/communities')}
+                onKeyDown={(e) => e.key === 'Enter' && navigate('/communities')}
+                tabIndex={0}
+                role="button"
+                aria-label="Browse stores"
+              >
+                <span className="nav-item-icon">🏪</span>
+                <span className="nav-item-text">Stores</span>
+              </div>
+              
+              <div 
+                className="nav-item"
+                onClick={() => {
+                  if (!user) {
+                    setLoginModalFeature('favorites');
+                    setLoginModalOpen(true);
+                    return;
+                  }
+                  if (userId) {
+                    navigate(`/user/${userId}/favorites`);
+                  } else {
+                    navigate('/login');
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (!user) {
+                      setLoginModalFeature('favorites');
+                      setLoginModalOpen(true);
+                      return;
+                    }
+                    if (userId) {
+                      navigate(`/user/${userId}/favorites`);
+                    } else {
+                      navigate('/login');
+                    }
+                  }
+                }}
+                tabIndex={0}
+                role="button"
+                aria-label="View favorites"
+              >
+                <span className="nav-item-icon">❤️</span>
+                <span className="nav-item-text">Favorites</span>
+              </div>
+
+              {user && (
+                <>
+                  <div 
+                    className="nav-item"
+                    onClick={() => {
+                      if (userId) {
+                        navigate(`/user/${userId}/orders`);
+                      } else {
+                        navigate('/login');
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (userId) {
+                          navigate(`/user/${userId}/orders`);
+                        } else {
+                          navigate('/login');
+                        }
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label="View your orders"
+                  >
+                    <span className="nav-item-icon">📦</span>
+                    <span className="nav-item-text">My Orders</span>
+                  </div>
+                  
+                  <div 
+                    className="nav-item"
+                    onClick={() => {
+                      if (userId) {
+                        navigate(`/user/${userId}/profile`);
+                      } else {
+                        navigate('/login');
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (userId) {
+                          navigate(`/user/${userId}/profile`);
+                        } else {
+                          navigate('/login');
+                        }
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label="View your profile"
+                  >
+                    <span className="nav-item-icon">👤</span>
+                    <span className="nav-item-text">Profile</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+
+
+            {/* Categories Section */}
+            <div className={`categories-section ${collapsedSections.categories ? 'collapsed' : ''}`}>
+              <h4 onClick={() => handleToggleSection('categories')}>📂 Categories</h4>
+              <div className="categories-list">
+                {/* All Categories */}
+                <div
+                  className={`category-item ${selectedCategory === 'All Categories' ? 'active' : ''}`}
+                  onClick={() => setSelectedCategory('All Categories')}
+                  onKeyDown={(e) => e.key === 'Enter' && setSelectedCategory('All Categories')}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Show all categories"
+                >
+                  <span className="category-icon">🏪</span>
+                  <span className="category-name">All Categories</span>
+                </div>
+                
+                {/* Category Groups */}
+                {categoryGroups.map((group, groupIndex) => (
+                  <div key={groupIndex} className="category-group">
+                    <div className="category-group-title">{group.title}</div>
+                    {group.categories.map(category => (
+                      <div
+                        key={category.id}
+                        className={`category-item category-sub-item ${selectedCategory === category.id ? 'active' : ''}`}
+                        onClick={() => setSelectedCategory(category.id)}
+                        onKeyDown={(e) => e.key === 'Enter' && setSelectedCategory(category.id)}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`Filter by ${category.name}`}
+                      >
+                        <span className="category-icon">{category.icon}</span>
+                        <span className="category-name">{category.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Brands Section */}
+            <div className={`brands-section ${collapsedSections.brands ? 'collapsed' : ''}`}>
+              <h4 onClick={() => handleToggleSection('brands')}>🏷️ Brands</h4>
+              <div className="brands-list">
+                {brands.map(brand => (
+                  <div
+                    key={brand.id}
+                    className={`brand-item ${selectedBrand === brand.id ? 'active' : ''}`}
+                    onClick={() => setSelectedBrand(brand.id)}
+                    onKeyDown={(e) => e.key === 'Enter' && setSelectedBrand(brand.id)}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Filter by ${brand.name}`}
+                  >
+                    <span className="brand-icon">{brand.icon}</span>
+                    <span className="brand-name">{brand.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Price Range Section */}
+            <div className={`price-section ${collapsedSections.price ? 'collapsed' : ''}`}>
+              <h4 onClick={() => handleToggleSection('price')}>💰 Price Range</h4>
+              <div className="price-range-container">
+                <div className="price-input-group">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={priceRange.min}
+                    onChange={(e) => setPriceRange({...priceRange, min: Number(e.target.value)})}
+                    className="price-input"
+                  />
+                  <span className="price-separator">to</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={priceRange.max}
+                    onChange={(e) => setPriceRange({...priceRange, max: Number(e.target.value)})}
+                    className="price-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Stock Filter Section */}
+            <div className={`stock-section ${collapsedSections.stock ? 'collapsed' : ''}`}>
+              <h4 onClick={() => handleToggleSection('stock')}>📦 Stock Status</h4>
+              <div className="stock-filter-options">
+                <label className="stock-filter-option">
+                  <input 
+                    type="radio" 
+                    name="stock" 
+                    value="All" 
+                    checked={stockFilter === 'All'} 
+                    onChange={(e) => setStockFilter(e.target.value)} 
+                  />
+                  <span className="radio-custom"></span>
+                  All Products
+                </label>
+                <label className="stock-filter-option">
+                  <input 
+                    type="radio" 
+                    name="stock" 
+                    value="In Stock" 
+                    checked={stockFilter === 'In Stock'} 
+                    onChange={(e) => setStockFilter(e.target.value)} 
+                  />
+                  <span className="radio-custom"></span>
+                  In Stock
+                </label>
+                <label className="stock-filter-option">
+                  <input 
+                    type="radio" 
+                    name="stock" 
+                    value="Out of Stock" 
+                    checked={stockFilter === 'Out of Stock'} 
+                    onChange={(e) => setStockFilter(e.target.value)} 
+                  />
+                  <span className="radio-custom"></span>
+                  Out of Stock
+                </label>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className={`stats-section ${collapsedSections.stats ? 'collapsed' : ''}`}>
+              <h4 onClick={() => handleToggleSection('stats')}>📊 Quick Stats</h4>
+              <div className="stats-grid">
+                <div className="stat-item">
+                  <div className="stat-number">{products.length}</div>
+                  <div className="stat-label">Total Products</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-number">{filteredProducts.length}</div>
+                  <div className="stat-label">Showing</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-number">
+                    {products.filter(p => p.stock > 0).length}
+                  </div>
+                  <div className="stat-label">In Stock</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Clear Filters */}
+            <div className="clear-filters-section">
+              <button 
+                className="clear-filters-btn"
+                onClick={handleClearFilters}
+              >
+                Clear All Filters
+              </button>
+            </div>
           </div>
+        </div>
         )}
 
-        {/* Products Grid (always visible) */}
-        <div className="products-content">
-          <div className="product-grid">
+        {/* Main Content */}
+        <div className="product-main">
+          {/* Header with search and controls */}
+          <div className="product-header">
+            <div className="header-left">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
+                <h2 className="product-title">
+                  Products ({filteredProducts.length})
+                </h2>
+              </div>
+              
+              {searchQuery && (
+                <div className="search-results-info">
+                  Showing results for "{searchQuery}"
+                </div>
+              )}
+              {selectedCategory !== 'All Categories' && (
+                <div className="category-filter-info">
+                  Filtered by: {categories.find(c => c.id === selectedCategory)?.name}
+                </div>
+              )}
+              {selectedBrand !== 'All Brands' && (
+                <div className="brand-filter-info">
+                  Brand: {brands.find(b => b.id === selectedBrand)?.name}
+                </div>
+              )}
+            </div>
+            
+            <div className="header-controls">
+              {/* Product Search Bar */}
+              <div className="product-search-section">
+                <div className="product-search-container">
+                  <input
+                    type="text"
+                    className="product-search-input"
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && searchQuery.trim()) {
+                        // Search functionality is already handled by the onChange
+                      }
+                    }}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+              
+              {/* Sort Dropdown */}
+              <select 
+                value={sortBy} 
+                onChange={handleSortChange}
+                className="sort-select"
+              >
+                <option value="name">Sort by Name</option>
+                <option value="price">Sort by Price</option>
+                <option value="newest">Sort by Newest</option>
+                <option value="popular">Sort by Popularity</option>
+              </select>
+              
+              {/* View Mode Toggle */}
+              <div className="view-mode-toggle">
+                <button
+                  className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                  onClick={() => handleViewModeChange('grid')}
+                  title="Grid view"
+                >
+                  ⊞
+                </button>
+                <button
+                  className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                  onClick={() => handleViewModeChange('list')}
+                  title="List view"
+                >
+                  ☰
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Products Grid/List */}
+          <div className={`product-grid ${viewMode === 'list' ? 'list-view' : ''} ${filteredProducts.length === 1 ? 'single-product' : ''}`}>
             {filteredProducts.length === 0 ? (
-              <div className="product-error-container" style={{gridColumn: '1/-1', textAlign: 'center'}}>
-                <ErrorMessage error="No products found for the selected filters." />
+              <div className="product-empty-state">
+                <div className="empty-icon">📦</div>
+                <div className="empty-title">
+                  {searchQuery ? 'No products found' : 'No products available'}
+                </div>
+                <div className="empty-subtitle">
+                  {searchQuery 
+                    ? `No products match "${searchQuery}"` 
+                    : 'Check back later for new products'
+                  }
+                </div>
+
               </div>
             ) : (
-              filteredProducts.map((product) => (
-                <div key={product._id} className={`product-card${(!isAdmin && effectiveBasket.some(b => b._id === product._id)) ? ' in-basket' : ''}`} onClick={() => !isAdmin && navigate(`/products/${product._id}`)} style={!isAdmin ? { cursor: 'pointer' } : {}}>
-                  <div className="product-image-wrapper">
-                    <span className={`stock-badge-absolute ${product.stock > 0 ? 'in-stock' : 'out-of-stock'}`}>
-                      {product.stock} {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
-                    </span>
+              filteredProducts.map((product, index) => (
+                                 <div
+                   key={product._id}
+                   className={`product-card ${(!isAdmin && effectiveBasket.some(b => b._id === product._id)) ? 'in-basket' : ''} ${viewMode === 'list' ? 'list-card' : ''}`}
+                   onClick={() => !isAdmin && navigate(`/products/${product._id}`)}
+                   style={{
+                     cursor: !isAdmin ? 'pointer' : 'default',
+                     animationDelay: `${index * 0.05}s`
+                   }}
+                 >
+                  <div className="product-card-header">
                     <img
                       src={product.images && product.images.length > 0 ? product.images[0] : product.imageUrl || '/placeholder-image.png'}
                       alt={product.name}
                       className="product-image"
+                      onError={(e) => {
+                        e.target.src = '/placeholder-image.png';
+                      }}
                     />
+                    <div className="product-overlay" />
+                    
+                    {/* Stock Badge */}
+                    <div className={`stock-badge ${product.stock > 0 ? 'in-stock' : 'out-of-stock'}`}>
+                      {product.stock} {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    {(isAdmin || (isSeller && isStoreOwner)) && (
+                      <div className="product-actions">
+                        <button
+                          className="edit-btn"
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            navigate(`/edit-product/${product._id}`); 
+                          }}
+                          aria-label={`Edit ${product.name}`}
+                          tabIndex={-1}
+                        >
+                          ✏️
+                        </button>
+                        
+                        <button
+                          className="delete-btn"
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setDeleteConfirmId(product._id); 
+                          }}
+                          aria-label={`Delete ${product.name}`}
+                          tabIndex={-1}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="product-info-section">
-                    <div className="product-header-row">
-                      <span className="product-name">{product.name}</span>
-                      <span className="product-category prominent">{product.category}</span>
+                  
+                  <div className="product-card-body">
+                    <h3 className="product-name">{product.name}</h3>
+                    <p className="product-description">
+                      {product.description || 'No description available.'}
+                    </p>
+                    
+                    {/* Product Stats */}
+                    <div className="product-stats">
+                      <span className="stat-badge category-badge">📂 {product.category}</span>
+                      <span className="stat-badge brand-badge">🏷️ {product.brand || 'Generic'}</span>
+                      <span className="stat-badge price-badge">💰 ${Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
-                    <div className="product-brand-row">
-                      <span className="product-brand">{product.brand || 'Generic'}</span>
-                    </div>
-                    <div className="product-price-row">
-                      <span className="product-price">
-                        ${Number(product.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <div className="product-description-card">{product.description}</div>
+                    
+                    {/* Additional info for list view */}
+                    {viewMode === 'list' && (
+                      <div className="product-meta">
+                        <span className="meta-item">📅 Created recently</span>
+                        <span className="meta-item">⭐ Popular</span>
+                        {product.category && (
+                          <span className="meta-item">{categories.find(c => c.id === product.category)?.icon} {product.category}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {(isAdmin || (isSeller && isStoreOwner)) && (
-                    <div className="product-actions-section">
-                      <button className="icon-btn edit-btn" onClick={(e) => { e.stopPropagation(); navigate(`/edit-product/${product._id}`); }} title="Edit">
-                        <span role="img" aria-label="edit">✏️</span>
-                      </button>
-                      <button className="icon-btn delete-btn" onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(product._id); }} title="Delete">
-                        <span role="img" aria-label="delete">🗑️</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
               ))
             )}
@@ -415,8 +982,8 @@ const ProductList = () => {
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
-        <div className="delete-confirmation-overlay analytics-modal-overlay">
-          <div className="delete-confirmation-modal modern-modal analytics-modal">
+        <div className="delete-confirmation-overlay">
+          <div className="delete-confirmation-modal">
             <button className="modal-close-btn" onClick={() => setDeleteConfirmId(null)} title="Close">×</button>
             <h3 className="modal-title delete-title">Delete Product</h3>
             <p className="delete-desc">Are you sure you want to delete this product? This action cannot be undone.</p>
@@ -432,8 +999,8 @@ const ProductList = () => {
       <Modal
         isOpen={isModalOpen}
         onRequestClose={closeModal}
-        className="product-modal analytics-modal"
-        overlayClassName="product-modal-overlay analytics-modal-overlay"
+        className="product-modal"
+        overlayClassName="product-modal-overlay"
       >
         <button onClick={closeModal} className="modal-close-btn">×</button>
         {selectedProduct && (
@@ -466,6 +1033,13 @@ const ProductList = () => {
           </>
         )}
       </Modal>
+      
+      {/* Login Modal for Visitors */}
+      <LoginModal 
+        isOpen={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        feature={loginModalFeature}
+      />
     </div>
   );
 };

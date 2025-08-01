@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require('google-auth-library');
 const Subscription = require("../models/Subscription");
 const Plan = require("../models/Plan");
+const { isAdminEmail } = require("../config/adminEmails");
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -14,16 +15,33 @@ exports.register = async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Email kontrolü - eğer admin listesindeyse admin olarak ata
+        let userRole = role;
+        if (isAdminEmail(email)) {
+            userRole = 'admin';
+            console.log(`Admin email detected: ${email} - Setting role to admin`);
+        } else if (role === 'seller') {
+            userRole = 'seller';
+        } else {
+            userRole = 'user';
+        }
+
         const newUser = new User({
             username,
             email,
             password: hashedPassword,
-            role: role === 'seller' ? 'seller' : (role || 'user') // if role is 'seller', set as seller, else default to user
+            role: userRole
         });
         await newUser.save();
 
-        res.status(201).json({message: "User registered successfully"});
+        console.log(`User registered with role: ${userRole} for email: ${email}`);
+
+        res.status(201).json({
+            message: "User registered successfully",
+            role: userRole
+        });
     } catch (err) {
+        console.error('Registration error:', err);
         res.status(500).json({error: err.message});
     }
 };
@@ -142,6 +160,15 @@ exports.googleLogin = async (req, res) => {
 
         const { email, name, picture, sub: googleId } = userData;
 
+        // Email kontrolü - eğer admin listesindeyse admin olarak ata
+        let userRole = 'user';
+        if (isAdminEmail(email)) {
+            userRole = 'admin';
+            console.log(`Admin email detected in Google login: ${email} - Setting role to admin`);
+        } else if (req.body.role === 'seller') {
+            userRole = 'seller';
+        }
+
         let user = await User.findOne({ email });
         if (!user) {
             user = new User({
@@ -149,13 +176,19 @@ exports.googleLogin = async (req, res) => {
                 email: email,
                 googleId: googleId,
                 profilePicture: picture,
-                role: req.body.role === 'seller' ? 'seller' : 'user',
+                role: userRole,
                 password: 'google-auth-' + Math.random().toString(36).substring(2)
             });
             await user.save();
+            console.log(`Google user registered with role: ${userRole} for email: ${email}`);
         } else if (!user.googleId) {
             user.googleId = googleId;
             user.profilePicture = picture;
+            // Eğer mevcut kullanıcı admin değilse ve admin listesindeyse güncelle
+            if (user.role !== 'admin' && isAdminEmail(email)) {
+                user.role = 'admin';
+                console.log(`Updating existing user to admin: ${email}`);
+            }
             await user.save();
         }
 
@@ -195,16 +228,31 @@ exports.registerAndSubscribe = async (req, res) => {
         if (existingUser) {
             return res.status(400).json({ message: "Email already in use" });
         }
+
+        // Email kontrolü - eğer admin listesindeyse admin olarak ata
+        let userRole = role;
+        if (isAdminEmail(email)) {
+            userRole = 'admin';
+            console.log(`Admin email detected in registerAndSubscribe: ${email} - Setting role to admin`);
+        } else if (role === 'seller') {
+            userRole = 'seller';
+        } else {
+            userRole = 'user';
+        }
+
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
+        
         // Create user
         const newUser = new User({
             username,
             email,
             password: hashedPassword,
-            role: role === 'seller' ? 'seller' : (role || 'user')
+            role: userRole
         });
         await newUser.save();
+        
+        console.log(`User registered with role: ${userRole} for email: ${email}`);
         // Create JWT token
         const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
         // Validate plan
@@ -241,6 +289,42 @@ exports.registerAndSubscribe = async (req, res) => {
         // Link subscription to community
         community.subscription = subscription._id;
         await community.save();
+        
+        // Create seller profile if role is seller
+        if (userRole === 'seller') {
+            const Seller = require("../models/Seller");
+            const seller = new Seller({
+                userId: newUser._id,
+                name: username.split(' ')[0] || username,
+                surname: username.split(' ')[1] || '',
+                phone: phone || '',
+                country: country || '',
+                city: city || '',
+                address: address || '',
+                planId: planDoc._id,
+                planEndDate: end,
+                subscriptionId: subscription._id,
+                storeId: community._id,
+                status: planDoc.price === 0 ? 'active' : 'pending',
+                isActive: true
+            });
+            await seller.save();
+            
+            // Update token with sellerId
+            const tokenWithSeller = jwt.sign({ 
+                id: newUser._id, 
+                role: newUser.role, 
+                sellerId: seller._id 
+            }, process.env.JWT_SECRET, { expiresIn: '1d' });
+            
+            return res.status(201).json({ 
+                token: tokenWithSeller, 
+                sellerId: seller._id, 
+                planId: planDoc._id, 
+                storeId: community._id 
+            });
+        }
+        
         // Return token and sellerId
         return res.status(201).json({ token, sellerId: newUser._id, planId: planDoc._id, storeId: community._id });
     } catch (err) {

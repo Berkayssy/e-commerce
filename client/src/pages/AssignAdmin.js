@@ -67,7 +67,7 @@ const AssignAdmin = () => {
           <h2>Assign Admin</h2>
           <p>Assign an admin to manage your store</p>
           <div className="community-info">
-            <span>Community ID: <strong>{communityId}</strong></span>
+            <span>Store: <strong>Your Store</strong></span>
           </div>
         </div>
 

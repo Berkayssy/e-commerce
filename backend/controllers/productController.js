@@ -135,3 +135,65 @@ exports.deleteProduct = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+exports.globalSearch = async (req, res) => {
+    try {
+        const { q: query, type } = req.query;
+        
+        if (!query || query.trim().length === 0) {
+            return res.status(400).json({ error: "Search query is required" });
+        }
+
+        const searchQuery = query.trim().toLowerCase();
+        const results = {
+            products: [],
+            communities: [],
+            plans: []
+        };
+
+        // Search products
+        if (!type || type === 'all' || type === 'products') {
+            const products = await Product.find({
+                $or: [
+                    { name: { $regex: searchQuery, $options: 'i' } },
+                    { description: { $regex: searchQuery, $options: 'i' } },
+                    { category: { $regex: searchQuery, $options: 'i' } },
+                    { brand: { $regex: searchQuery, $options: 'i' } }
+                ]
+            }).limit(20);
+            results.products = products;
+        }
+
+        // Search communities
+        if (!type || type === 'all' || type === 'communities') {
+            const communities = await Community.find({
+                $or: [
+                    { name: { $regex: searchQuery, $options: 'i' } },
+                    { description: { $regex: searchQuery, $options: 'i' } },
+                    { transId: { $regex: searchQuery, $options: 'i' } }
+                ]
+            }).limit(20);
+            results.communities = communities;
+        }
+
+        // Search plans
+        if (!type || type === 'all' || type === 'plans') {
+            const Plan = require('../models/Plan');
+            const plans = await Plan.find({
+                $or: [
+                    { name: { $regex: searchQuery, $options: 'i' } },
+                    { description: { $regex: searchQuery, $options: 'i' } }
+                ]
+            }).limit(20);
+            results.plans = plans;
+        }
+
+        res.status(200).json({
+            query: searchQuery,
+            results,
+            totalResults: results.products.length + results.communities.length + results.plans.length
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
