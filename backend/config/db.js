@@ -1,10 +1,19 @@
+// backend/config/db.js - BU KODU YAPIŞTIR:
 const mongoose = require("mongoose");
 const logger = require("../utils/logger");
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000, // Try to connect for 5 seconds
+    // ✅ DOCKER'DA KESİNLİKLE galeria-mongo KULLAN
+    const mongoUri =
+      process.env.MONGODB_URI || "mongodb://galeria-mongo:27017/galeria";
+
+    logger.info(`🔗 Connecting to MongoDB at ${mongoUri}`);
+
+    const conn = await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 15000, // 15 saniye
+      socketTimeoutMS: 45000,
+      bufferCommands: false,
     });
 
     logger.info(`✅ MongoDB Connected: ${conn.connection.host}`);

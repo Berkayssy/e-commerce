@@ -16,6 +16,8 @@ const {
   requestIdMiddleware,
   contextMiddleware,
 } = require("./middlewares/tracing");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpecs = require("./config/swagger");
 
 // routes
 const authRoutes = require("./modules/auth/auth.routes");
@@ -68,6 +70,17 @@ app.use(sanitizeInput);
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
+
+// API documentation
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpecs, {
+    explorer: true,
+    customCss: ".swagger-ui .topbar { display: none }",
+    customSiteTitle: "Progon E-Commerce API Docs",
+  })
+);
 
 // 🔒 Security Middleware
 applySecurity(app);

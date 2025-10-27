@@ -1,0 +1,35 @@
+# backend/docker-compose.yml - SERVICE İSİMLERİNİ KONTROL ET:
+services:
+  galeria-backend:
+    build: .
+    container_name: galeria-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://galeria-mongo:27017/galeria
+      - REDIS_HOST=galeria-redis
+      - REDIS_PORT=6379
+    depends_on:
+      - galeria-mongo # ✅ Bu isimler aynı olmalı
+      - galeria-redis # ✅ Bu isimler aynı olmalı
+
+  galeria-mongo: # ✅ Service ismi bu
+    image: mongo:latest
+    container_name: galeria-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - galeria_mongo_data:/data/db
+
+  galeria-redis: # ✅ Service ismi bu
+    image: redis:alpine
+    container_name: galeria-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - galeria_redis_data:/data
+
+volumes:
+  galeria_mongo_data:
+  galeria_redis_data:
