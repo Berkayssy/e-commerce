@@ -1,0 +1,29 @@
+{
+  "folders": [
+    {
+      "name": "Client (Next.js)",
+      "path": "./client"
+    },
+    {
+      "name": "Backend (Node.js)",
+      "path": "./backend"
+    }
+  ],
+  "settings": {
+    "tailwindCSS.rootFontSize": 16,
+    "tailwindCSS.emmetCompletions": true,
+    "tailwindCSS.includeLanguages": {
+      "typescript": "typescript",
+      "typescriptreact": "typescriptreact"
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "bradlc.vscode-tailwindcss",
+      "esbenp.prettier-vscode",
+      "ms-vscode.vscode-typescript-next",
+      "formulahendry.auto-rename-tag",
+      "christian-kohler.path-intellisense"
+    ]
+  }
+}

@@ -1,45 +1,38 @@
-// Entry point for starting the Express server. Only starts the app and reads PORT from .env
-const express = require("express");
-const dotenv = require("dotenv");
-const connectDB = require("./config/db");
-const cors = require('cors');
+require("dotenv").config();
 
-dotenv.config();
+const app = require("./app");
+const connectDB = require("./config/db");
+const logger = require("./utils/logger");
+
+const PORT = process.env.PORT || 4000;
+
 connectDB();
 
-const app = require('./app');
-// const adminRoutes = require('./routes/adminRoutes'); // Remove this line
-
-const PORT = process.env.PORT;
-
-if (!PORT) {
-  throw new Error('PORT must be defined in .env file');
-}
-
-const allowedOrigins = [
-  'http://localhost:3000', // local react
-  'https://YOUR_NETLIFY_URL.netlify.app', // netlify prod
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'CORS policy: This origin is not allowed.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true,
-}));
-
-// app.use('/api/admin', adminRoutes); // Remove this line
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error('GLOBAL ERROR:', err);
-  res.status(500).json({ error: err.message || 'Internal Server Error' });
+const server = app.listen(PORT, () => {
+  logger.info(
+    `🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`
+  );
 });
 
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+// Graceful shutdown
+const shutdown = (signal) => {
+  logger.info(`${signal} received. Closing server...`);
+  server.close(() => {
+    logger.info("HTTP server closed.");
+    process.exit(0);
+  });
+};
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
+
+// Global error handlers
+process.on("uncaughtException", (err) => {
+  logger.error("Uncaught Exception 💥", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (err) => {
+  logger.error("Unhandled Rejection 💥", err);
+  server.close(() => process.exit(1));
+});
