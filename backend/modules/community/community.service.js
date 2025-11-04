@@ -66,7 +66,7 @@ exports.createOnboardingStore = async (req) => {
       400
     );
 
-  const logoObj = req.file ? fileparser.parseFile(req.file) : null;
+  const logoObj = req.file ? fileparser.parse(req.file) : null;
   const transId = slugify(name) + "-" + Date.now();
 
   const owner = req.user?.id;
