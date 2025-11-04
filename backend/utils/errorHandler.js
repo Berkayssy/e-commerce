@@ -1,4 +1,4 @@
-function handleServiceError(error, functionName) {
+function errorHandler(error, functionName) {
   console.error(`Error in ${functionName}:`, error.message);
 
   // Known error with status
@@ -50,4 +50,4 @@ function createError(message, status = 500) {
   return err;
 }
 
-module.exports = { handleServiceError, createError };
+module.exports = { errorHandler, createError };

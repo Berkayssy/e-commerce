@@ -6,7 +6,7 @@ const Subscription = require("../../models/Subscription");
 
 const slugify = require("../../utils/slugify");
 const fileparser = require("../../utils/fileparser");
-const { createError } = require("../../utils/errorHandler");
+const { createError, errorHandler } = require("../../utils/errorHandler");
 
 const orderService = require("../order/orders.service");
 const userService = require("../auth/auth.service"); // or user.service.js
@@ -29,7 +29,7 @@ exports.createCommunity = async ({ name, transId, rootAdminId, role }) => {
     if (error instanceof mongooe.Error.CastError) {
       return { status: 404, success: false, message: "Community not found" };
     }
-    return handleServiceError(error, "createCommunity");
+    return errorHandler(error, "createCommunity");
   }
 };
 
