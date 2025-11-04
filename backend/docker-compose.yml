@@ -1,4 +1,3 @@
-# backend/docker-compose.yml - SERVICE İSİMLERİNİ KONTROL ET:
 services:
   galeria-backend:
     build: .
@@ -7,7 +6,7 @@ services:
       - "4000:4000"
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb://galeria-mongo:27017/galeria
+      - MONGODB_URI=mongodb+srv://Berkay:BerkayMGE99.database@e-commerce-db.qg5uy2o.mongodb.net/e-commerce
       - REDIS_HOST=galeria-redis
       - REDIS_PORT=6379
     depends_on:

@@ -45,7 +45,9 @@ router.post(
   validate,
   controller.login
 );
+
 router.post("/refresh", controller.refreshToken);
+
 /**
  * @swagger
  * /api/auth/register:
@@ -84,7 +86,6 @@ router.post("/refresh", controller.refreshToken);
  *       500:
  *         description: Internal server error
  */
-
 router.post("/register", controller.register);
 
 router.post(
@@ -116,41 +117,3 @@ router.get("/me", verifyToken, controller.getCurrentUser);
 router.post("/logout", verifyToken, controller.logout);
 
 module.exports = router;
-
-/**
- * @swagger
- * /api/auth/login:
- *   post:
- *     summary: User login
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
- *                 format: password
- *     responses:
- *       200:
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/AuthResponse'
- *       401:
- *         description: Invalid credentials
- *       500:
- *         description: Internal server error
- */
-router.post("/login", async (req, res) => {
-  // Mevcut kodun
-});

@@ -1,53 +1,23 @@
 const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
-const xss = require("xss");
-
-// Rate limiting
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: { success: false, message: "Too many requests from this IP" },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: { success: false, message: "Too many authentication attempts" },
-  skipSuccessfulRequests: true,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// XSS Protection
-const xssProtection = (req, res, next) => {
-  if (req.body) {
-    Object.keys(req.body).forEach((key) => {
-      if (typeof req.body[key] === "string") {
-        req.body[key] = xss(req.body[key]);
-      }
-    });
-  }
-  next();
-};
+const logger = require("../utils/logger");
 
 // Security configuration
+// Note: Rate limiting and XSS protection are handled in app.js middleware stack
+// This file only provides additional security middleware if needed
+
 function applySecurity(app) {
-  console.log("🛡️  Applying security middleware...");
+  // Helmet is already applied via securityHeaders middleware in app.js
+  // This function is kept for backward compatibility and future extensions
 
-  // Helmet
-  app.use(helmet());
+  logger.info(
+    "🛡️ Security middleware initialized (rate limiting and XSS handled in app.js)"
+  );
 
-  // Rate limiting
-  app.use(generalLimiter);
-  app.use("/api/auth/login", authLimiter);
-  app.use("/api/auth/register", authLimiter);
-
-  // XSS protection
-  app.use(xssProtection);
-
-  console.log("✅ Security middleware applied");
+  // Additional security middleware can be added here if needed
+  // For now, all security is handled by:
+  // - securityHeaders.js (Helmet + custom headers)
+  // - rateLimiting.js (Rate limiting with Redis)
+  // - sanitizeInput.js (XSS protection)
 }
 
 module.exports = applySecurity;

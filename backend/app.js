@@ -1,6 +1,6 @@
-// Production-ready backend application with enhanced security, error handling, and monitoring
 const express = require("express");
 const morgan = require("morgan");
+const logger = require("./utils/logger");
 const applySecurity = require("./config/security");
 const globalErrorHandler = require("./middlewares/globalErrorHandler");
 const requestLogger = require("./middlewares/requestLogger");
@@ -11,6 +11,7 @@ const {
   healthCheck,
   metricsMiddleware,
   timeoutMiddleware,
+  getMetrics,
 } = require("./middlewares/monitoring");
 const {
   requestIdMiddleware,
@@ -32,23 +33,82 @@ const onboardingRoutes = require("./modules/seller/onboarding/onboarding.routes"
 
 const app = express();
 
-// 🔴 CRITICAL: CORS'u EN BAŞTA
 const cors = require("cors");
-app.use(
-  cors({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  })
-);
+const config = require("./config/env");
+
+// CORS configuration - environment-based
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Get allowed origins from environment or use defaults
+    const allowedOrigins = config.CORS_ORIGINS || [
+      "http://localhost:3000",
+      "http://localhost:3001",
+    ];
+
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      // In development, be more permissive
+      if (process.env.NODE_ENV === "development") {
+        logger.warn(`CORS: Allowing origin ${origin} in development mode`);
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS policy`));
+      }
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "X-Request-ID",
+    "X-Trace-ID",
+    "X-Correlation-ID",
+  ],
+  exposedHeaders: ["X-Request-ID", "X-Trace-ID"],
+  maxAge: 86400, // 24 hours
+  optionsSuccessStatus: 200, // Some legacy browsers (IE11, various SmartTVs) choke on 204
+};
+
+app.use(cors(corsOptions));
 
 // Trust proxy for accurate IP addresses
 app.set("trust proxy", 1);
 
-// Body parsing middleware
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// Body parsing middleware - environment-based limits
+const jsonLimit =
+  process.env.JSON_BODY_LIMIT ||
+  (process.env.NODE_ENV === "production" ? "1mb" : "10mb");
+const urlencodedLimit =
+  process.env.URLENCODED_BODY_LIMIT ||
+  (process.env.NODE_ENV === "production" ? "1mb" : "10mb");
+
+app.use(
+  express.json({
+    limit: jsonLimit,
+    strict: true, // Only parse arrays and objects
+    type: "application/json",
+  })
+);
+app.use(
+  express.urlencoded({
+    extended: true, // Use qs library for parsing
+    limit: urlencodedLimit,
+    parameterLimit: 1000, // Limit number of parameters
+  })
+);
+
+logger.info(
+  `📦 Body parsing limits: JSON=${jsonLimit}, URLEncoded=${urlencodedLimit}`
+);
 
 // Tracing and Monitoring
 app.use(requestIdMiddleware);
@@ -90,7 +150,8 @@ app.use(requestLogger);
 
 // Health check endpoint
 app.get("/health", healthCheck);
-app.get("/metrics", metricsMiddleware);
+// Prometheus metrics endpoint (should not be rate-limited)
+app.get("/metrics", getMetrics);
 
 // 🧠 Routes
 app.use("/api/auth", authRoutes);

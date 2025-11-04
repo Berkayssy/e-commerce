@@ -1,4 +1,3 @@
-// backend/config/redis.js - TAMAMEN DEĞİŞTİR:
 const Redis = require("ioredis");
 const logger = require("../utils/logger");
 
@@ -11,20 +10,48 @@ if (process.env.NODE_ENV === "test") {
     del: async () => null,
   };
 } else {
-  // DOCKER'DA KESİNLİKLE galeria-redis KULLAN
-  const redisHost = process.env.REDIS_HOST || "galeria-redis";
+  // Use REDIS_URL if provided, otherwise use REDIS_HOST/REDIS_PORT
+  // Default to localhost for local development, galeria-redis for Docker
+  const redisUrl = process.env.REDIS_URL;
+  const redisHost =
+    process.env.REDIS_HOST ||
+    (process.env.NODE_ENV === "production" ? "galeria-redis" : "localhost");
   const redisPort = process.env.REDIS_PORT || 6379;
 
-  redis = new Redis({
-    host: redisHost,
-    port: redisPort,
-    retryDelayOnFailover: 1000,
-    maxRetriesPerRequest: 3,
-    lazyConnect: true,
-  });
+  if (redisUrl) {
+    redis = new Redis(redisUrl, {
+      retryDelayOnFailover: 1000,
+      maxRetriesPerRequest: 3,
+      lazyConnect: true,
+      enableReadyCheck: false, // Disable ready check for local development
+      enableOfflineQueue: true, // Allow queueing commands when offline (for graceful degradation)
+    });
+  } else {
+    redis = new Redis({
+      host: redisHost,
+      port: redisPort,
+      retryDelayOnFailover: 1000,
+      maxRetriesPerRequest: 3,
+      lazyConnect: true,
+      enableReadyCheck: false, // Disable ready check for local development
+      enableOfflineQueue: true, // Allow queueing commands when offline (for graceful degradation)
+    });
+  }
 
-  redis.on("error", (err) => logger.error("Redis Connection Error:", err));
-  redis.on("connect", () => logger.info("✅ Redis Connected to " + redisHost));
+  redis.on("error", (err) => {
+    // Only log error if not connection refused (Redis not running is OK in dev)
+    if (
+      !err.message.includes("ECONNREFUSED") &&
+      !err.message.includes("ENOTFOUND")
+    ) {
+      logger.error("Redis Connection Error:", err);
+    }
+  });
+  redis.on("connect", () =>
+    logger.info(
+      "✅ Redis Connected to " + (redisUrl || `${redisHost}:${redisPort}`)
+    )
+  );
 }
 
 module.exports = redis;

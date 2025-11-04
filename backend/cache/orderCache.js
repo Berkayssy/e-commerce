@@ -1,13 +1,12 @@
-// cache/orderCache.js - YENİ DOSYA
 const redisClient = require("./redisClient");
 
 const ANALYTICS_PREFIX = "analytics:";
 const DASHBOARD_PREFIX = "dashboard:";
 const ORDER_PREFIX = "order:";
-const CACHE_EXPIRY = 1800; // 30 dakika
+const CACHE_EXPIRY = 1800; // 30 minutes
 
 class OrderCache {
-  // ✅ Order detay cache
+  // Order details cache
   static async getOrderById(orderId) {
     try {
       const cached = await redisClient.get(`${ORDER_PREFIX}${orderId}`);
@@ -30,7 +29,7 @@ class OrderCache {
     }
   }
 
-  // ✅ Satıcı analitik cache
+  // Order analytics cache
   static async getSellerAnalytics(sellerId) {
     try {
       const cached = await redisClient.get(
@@ -55,7 +54,7 @@ class OrderCache {
     }
   }
 
-  // ✅ Dashboard cache
+  // Dashboard cache
   static async getSellerDashboard(sellerId) {
     try {
       const cached = await redisClient.get(
@@ -80,7 +79,7 @@ class OrderCache {
     }
   }
 
-  // ✅ Cache invalidation
+  // Cache invalidation
   static async invalidateOrderCaches(sellerId = null) {
     try {
       if (sellerId) {

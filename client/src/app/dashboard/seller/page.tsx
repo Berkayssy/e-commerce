@@ -15,11 +15,22 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 
 import { Logo } from "@/components/custom/logo-galeria/logo";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function SellerDashboard() {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    toast.success("Logout successful!");
+    router.push("/");
+  };
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const menuItems = [
@@ -76,6 +87,9 @@ export default function SellerDashboard() {
             );
           })}
         </ul>
+        <button className="p-2 rounded-lg hover:bg-secondary-100 text-secondary-700">
+          <LogOut className="w-5 h-5" onClick={handleLogout} />
+        </button>
       </aside>
 
       {/* Main Content */}

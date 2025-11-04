@@ -2,7 +2,7 @@ const redisClient = require("./redisClient");
 
 const PRODUCT_CACHE_PREFIX = "product:";
 const PRODUCT_LIST_PREFIX = "products:";
-const CACHE_EXPIRY = 3600; // 1 saat
+const CACHE_EXPIRY = 3600; // 1 hours
 
 class ProductCache {
   static async getProductById(productId) {

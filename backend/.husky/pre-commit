@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run linting
+echo "📝 Running ESLint..."
+npm run lint --silent || {
+  echo "❌ ESLint failed. Please fix the errors above."
+  exit 1
+}
+
+# Check for console.log statements (should use logger instead)
+echo "🔎 Checking for console.log statements..."
+if grep -r "console\.log" --include="*.js" --exclude-dir=node_modules --exclude-dir=coverage .; then
+  echo "⚠️  Warning: Found console.log statements. Consider using logger instead."
+  echo "Do you want to continue? (y/n)"
+  read -r response
+  if [ "$response" != "y" ]; then
+    exit 1
+  fi
+fi
+
+# Run tests (quick unit tests only)
+echo "🧪 Running quick tests..."
+npm run test:unit --silent || {
+  echo "❌ Tests failed. Please fix the errors above."
+  exit 1
+}
+
+echo "✅ Pre-commit checks passed!"

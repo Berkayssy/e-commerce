@@ -4,7 +4,6 @@ const User = require("../models/User");
 const { createError } = require("../utils/errorHandler");
 const isAdminEmail = require("../utils/Auth/isAdminEmail");
 
-// Google Strategy
 passport.use(
   new GoogleStrategy(
     {

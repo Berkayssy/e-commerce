@@ -1,4 +1,3 @@
-// backend/utils/fileparser.js - EXPORT'U DEĞİŞTİR:
 const parseFile = (file) => {
   if (!file) return null;
   return {
