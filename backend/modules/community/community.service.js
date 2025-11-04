@@ -4,8 +4,9 @@ const Seller = require("../../models/Seller");
 const Community = require("../../models/Community");
 const Subscription = require("../../models/Subscription");
 
+const path = require("path");
 const slugify = require("../../utils/slugify");
-const fileparser = require("../../utils/fileparser");
+const fileparser = require(path.join(__dirname, "../../utils/fileparser"));
 const { createError, errorHandler } = require("../../utils/errorHandler");
 
 const orderService = require("../order/orders.service");
