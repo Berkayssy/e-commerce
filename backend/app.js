@@ -27,7 +27,7 @@ const orderRoutes = require("./modules/order/orders.routes");
 const planRoutes = require("./modules/plan/plan.routes");
 const sellerRoutes = require("./modules/seller/seller.routes");
 const favoriteRoutes = require("./modules/favorites/favorites.route");
-const communityRoutes = require("./modules/community/community.routes");
+// const communityRoutes = require("./modules/community/community.routes");
 const searchRoutes = require("./modules/search/search.routes");
 const onboardingRoutes = require("./modules/seller/onboarding/onboarding.routes");
 
@@ -157,7 +157,7 @@ app.get("/metrics", getMetrics);
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/api/communities", communityRoutes);
+//app.use("/api/communities", communityRoutes);
 app.use("/api/plans", planRoutes);
 app.use("/api/sellers", sellerRoutes);
 app.use("/api/search", searchRoutes);
