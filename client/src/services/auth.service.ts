@@ -1,9 +1,6 @@
 import { LoginFormData, RegisterFormData, AuthResponse } from "@/types/auth";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://e-commerce-backend-ml1p.onrender.com/api" ||
-  "http://localhost:4000/api";
+const API_BASE_URL = "https://galeriaio.netlify.app.com/api";
 
 class AuthService {
   private async request<T>(
