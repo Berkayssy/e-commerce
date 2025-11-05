@@ -1,6 +1,6 @@
 import { LoginFormData, RegisterFormData, AuthResponse } from "@/types/auth";
 
-const API_BASE_URL = "https://galeriaio.netlify.app.com/api";
+const API_BASE_URL = "https://e-commerce-backend-ml1p.onrender.com/api";
 
 class AuthService {
   private async request<T>(
@@ -46,10 +46,8 @@ class AuthService {
     });
   }
 
-  async googleLogin(): Promise<AuthResponse> {
-    return this.request<AuthResponse>(`${API_BASE_URL}/auth/google`, {
-      method: "GET",
-    });
+  async googleLogin(): Promise<void> {
+    window.location.href = `${API_BASE_URL}/auth/google`;
   }
 
   async logout(): Promise<void> {
