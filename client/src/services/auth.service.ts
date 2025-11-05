@@ -1,7 +1,9 @@
 import { LoginFormData, RegisterFormData, AuthResponse } from "@/types/auth";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://e-commerce-backend-ml1p.onrender.com/api" ||
+  "http://localhost:4000/api";
 
 class AuthService {
   private async request<T>(
@@ -48,7 +50,7 @@ class AuthService {
   }
 
   async googleLogin(): Promise<AuthResponse> {
-    return this.request<AuthResponse>("/auth/google", {
+    return this.request<AuthResponse>(`${API_BASE_URL}/auth/google`, {
       method: "GET",
     });
   }
