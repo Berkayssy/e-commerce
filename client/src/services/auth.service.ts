@@ -1,9 +1,4 @@
-import {
-  LoginFormData,
-  RegisterFormData,
-  AuthResponse,
-  GoogleLoginData,
-} from "@/types/auth";
+import { LoginFormData, RegisterFormData, AuthResponse } from "@/types/auth";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
@@ -52,10 +47,9 @@ class AuthService {
     });
   }
 
-  async googleLogin(data: GoogleLoginData): Promise<AuthResponse> {
+  async googleLogin(): Promise<AuthResponse> {
     return this.request<AuthResponse>("/auth/google", {
-      method: "POST",
-      body: JSON.stringify(data),
+      method: "GET",
     });
   }
 

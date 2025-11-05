@@ -80,12 +80,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   };
 
-  // ✅ Google Login
-  const googleLogin = async (data: GoogleLoginData) => {
+  const googleLogin = async () => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const response = await authService.googleLogin(data);
+      // ✅ Backend'den JSON response al
+      const response = await authService.googleLogin();
       const { token, refreshToken, user } = normalizeAuthResponse(response);
 
       localStorage.setItem("token", token);
@@ -99,7 +99,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: true,
       });
 
-      console.log("✅ Google login successful:", user.email);
+      // ✅ Dashboard'a yönlendir
+      window.location.href = "/dashboard";
     } catch (error) {
       console.error("❌ Google login failed:", error);
       setState((prev) => ({
@@ -110,11 +111,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             error instanceof Error ? error.message : "Google login failed",
         },
       }));
-      throw error;
     }
   };
 
-  // ✅ Token Refresh
   const refreshAuth = useCallback(async () => {
     console.log("🔁 Refreshing token...");
     try {
