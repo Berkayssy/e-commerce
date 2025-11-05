@@ -16,6 +16,6 @@ module.exports = {
   MONGO_URI: process.env.MONGO_URI,
   JWT_SECRET: process.env.JWT_SECRET,
   CORS_ORIGINS: process.env.CORS_ORIGINS?.split(",") || [
-    "http://localhost:5000",
+    "http://localhost:4000",
   ],
 };

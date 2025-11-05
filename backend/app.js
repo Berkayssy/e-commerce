@@ -43,6 +43,7 @@ const corsOptions = {
     const allowedOrigins = config.CORS_ORIGINS || [
       "http://localhost:3000",
       "http://localhost:3001",
+      process.env.FRONTEND_URL,
     ];
 
     // Allow requests with no origin (mobile apps, curl, etc.)

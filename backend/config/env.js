@@ -26,9 +26,7 @@ const envSchema = Joi.object({
     .default("7d")
     .description("JWT refresh token expiration time"),
 
-  REDIS_URL: Joi.string()
-    .default("redis://localhost:6379")
-    .description("Redis connection URL"),
+  REDIS_URL: Joi.string().uri().allow("").optional(),
 
   FRONTEND_URL: Joi.string().uri().description("Frontend URL for CORS"),
 

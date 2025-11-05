@@ -88,7 +88,7 @@ router.post("/refresh", controller.refreshToken);
  */
 router.post("/register", controller.register);
 
-router.post(
+router.get(
   "/google",
   validate,
   authValidators.googleLoginValidator,
