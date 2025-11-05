@@ -84,23 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // ✅ Backend'den JSON response al
-      const response = await authService.googleLogin();
-      const { token, refreshToken, user } = normalizeAuthResponse(response);
-
-      localStorage.setItem("token", token);
-      localStorage.setItem("refreshToken", refreshToken);
-
-      setState({
-        user: user,
-        token: token,
-        isLoading: false,
-        error: null,
-        isAuthenticated: true,
-      });
-
-      // ✅ Dashboard'a yönlendir
-      window.location.href = "/dashboard";
+      await authService.googleLogin();
     } catch (error) {
       console.error("❌ Google login failed:", error);
       setState((prev) => ({
