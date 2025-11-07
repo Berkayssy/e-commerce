@@ -36,7 +36,7 @@ const loginSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, googleLogin, error, isLoading, user } = useAuth();
+  const { login, error, isLoading, user } = useAuth();
   const [localError, setLocalError] = useState<string | null>(null);
 
   const {
@@ -72,8 +72,8 @@ export default function LoginPage() {
   ) => {
     if (provider === "google") {
       try {
-        await googleLogin({});
-        // ✅ useEffect otomatik yönlendirecek
+        //await googleLogin({});
+        toast.info("Google login coming soon!");
       } catch (error) {
         console.error("❌ Google login failed:", error);
         toast.error("Google login failed");

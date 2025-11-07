@@ -62,13 +62,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
-  const {
-    register: registerUser,
-    error,
-    isLoading,
-    user,
-    googleLogin,
-  } = useAuth();
+  const { register: registerUser, error, isLoading, user } = useAuth();
   const [localError, setLocalError] = useState<string | null>(null);
 
   const {
@@ -126,7 +120,8 @@ export default function RegisterPage() {
       //setIsGoogleLoading(true);
       setLocalError(null);
       try {
-        await googleLogin({});
+        //await googleLogin({});
+        toast.info("Google login coming soon!");
         // ✅ useEffect otomatik yönlendirecek
       } catch (err) {
         const errorMessage =
